@@ -2,6 +2,7 @@ import pandas as pd
 import networkx as nx
 from dtaidistance import dtw
 import numpy as np
+from itertools import combinations
 
 def load_data_from_single_csv(csv_path):
     df = pd.read_csv(csv_path, parse_dates=['Date'])
@@ -45,16 +46,20 @@ def graph_to_dot(G, graph_name="G"):
 csv_path = "/home/dani/Documents/git/Master/finviz-platform/dados_1/acoes_ibov.csv"  # Replace with your CSV file
 price_df = load_data_from_single_csv(csv_path)
 
-# 1. Pearson correlation graph
-G_corr = build_correlation_graph(price_df, threshold=0.9)
+# === Calcular correlações ===
+pearson_results = []
+dtw_results = []
+
+# Pearson correlation graph
+G_corr = build_correlation_graph(price_df, threshold=0.90)
 dot_corr = graph_to_dot(G_corr, "CorrelationGraph")
 print("Correlation Graph DOT:\n", dot_corr)
 with open("graph_pearson.dot", "a") as f:
   f.write(dot_corr)
 
 
-# 2. DTW distance graph
-G_dtw = build_dtw_graph(price_df, threshold=100)
+# DTW distance graph
+G_dtw = build_dtw_graph(price_df, threshold=20)
 dot_dtw = graph_to_dot(G_dtw, "DTWGraph")
 print("\nDTW Graph DOT:\n", dot_dtw)
 with open("graph_dwt.dot", "a") as f:
