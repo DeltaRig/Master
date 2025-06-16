@@ -1,5 +1,5 @@
-#define MAX_TICKERS 100
-#define MAX_TIMEPOINTS 3000
+#define MAX_TICKERS 200
+#define MAX_TIMEPOINTS 5000
 #define MAX_TICKER_NAME 32
 
 typedef struct {
@@ -9,4 +9,4 @@ typedef struct {
     int count;
 } TickerSeries;
 
-int load_series_from_csv(const char *filename, TickerSeries *series_list, int *num_series);
+int load_series_from_csv(const char *filename, TickerSeries *series_list, int *num_series, int max_assets);

@@ -12,8 +12,6 @@
 #include "load_series_from_csv.h"
 #include <stdio.h>
 
-#define MAX_TICKERS_TO_USE 5
-
 // n is the number of time series
 bool save_result(int n, double *result, TickerSeries *series_list){
     FILE *fptr;
@@ -27,7 +25,6 @@ bool save_result(int n, double *result, TickerSeries *series_list){
     for (int r=0; r<n; r++) {
         for (int c=r+1; c<n; c++) {
             fprintf(fptr, "%s %s = %f\n", series_list[r].ticker, series_list[c].ticker, result[idx++]);
-            idx++;
         }
     }
 
@@ -35,7 +32,7 @@ bool save_result(int n, double *result, TickerSeries *series_list){
     return 0;
 }
 
-void example() {
+void example(const char *file_path, int max_assets) {
     if (is_openmp_supported()) {
         printf("OpenMP is supported\n");
     } else {
@@ -46,7 +43,7 @@ void example() {
     printf("Loading time series...\n");
     TickerSeries series[MAX_TICKERS];
     int num_series = 0;
-    load_series_from_csv("/home/dani/Documents/git/Master/dados/bdrs.csv", series, &num_series);
+    load_series_from_csv(file_path, series, &num_series, max_assets);
     printf("Loaded %d time series\n", num_series);
 
     double *s[MAX_TICKERS];
@@ -55,6 +52,7 @@ void example() {
     for (int i = 0; i < num_series; i++) {
         s[i] = series[i].close;
         lengths[i] = series[i].count;
+       // printf("%d dados para a serie %s\n", series[i].count, series[i].ticker);
     }
 
     idx_t result_length = num_series * (num_series - 1) / 2;
@@ -65,10 +63,22 @@ void example() {
     }
 
     printf("DTW Settings and run...\n");
+    time_t start_t, end_t;
+    struct timespec start, end;
+    double diff_t, diff_t2;
+    time(&start_t);
+    clock_gettime(CLOCK_REALTIME, &start);
+
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
     dtw_distances_ptrs_parallel(s, num_series, lengths, result, &block, &settings);
-    printf("DTW Completed\n");
+    
+    time(&end_t);
+    clock_gettime(CLOCK_REALTIME, &end);
+    diff_t = difftime(end_t, start_t);
+    diff_t2 = ((double)end.tv_sec*1e9 + end.tv_nsec) - ((double)start.tv_sec*1e9 + start.tv_nsec);
+    printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2/1000000);
+    
 
     save_result(num_series, result, series);
     printf("Result saved\n");
@@ -78,20 +88,16 @@ void example() {
 
 
 int main(int argc, const char * argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets>\n", argv[0]);
+        return 1;
+    }
+
+    const char *file_path = argv[1];
+    int max_assets = atoi(argv[2]); 
+
     printf("Run example ...\n");
-    time_t start_t, end_t;
-    struct timespec start, end;
-    double diff_t, diff_t2;
-    time(&start_t);
-    clock_gettime(CLOCK_REALTIME, &start);
-
-    example();
-
-    time(&end_t);
-    clock_gettime(CLOCK_REALTIME, &end);
-    diff_t = difftime(end_t, start_t);
-    diff_t2 = ((double)end.tv_sec*1e9 + end.tv_nsec) - ((double)start.tv_sec*1e9 + start.tv_nsec);
-    printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2/1000000);
+    example(file_path, max_assets);
 
     return 0;
 }
