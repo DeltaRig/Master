@@ -1,5 +1,5 @@
 // create by
-// modified by Daniela Rigoli
+// modified by Daniela Rigoli at June 2025
 
 
 #include <stdio.h>
@@ -9,13 +9,13 @@
 
 #include "dd_dtw.h"
 #include "dd_dtw_openmp.h"
-#include "load_time_series_from_csv.h"
+#include "load_series_from_csv.h"
 #include <stdio.h>
 
-
+#define MAX_TICKERS_TO_USE 5
 
 // n is the number of time series
-bool save_result(int n, double *result){
+bool save_result(int n, double *result, TickerSeries *series_list){
     FILE *fptr;
     fptr = fopen("dtw_result.txt", "w");
     if (fptr == NULL) {
@@ -26,7 +26,7 @@ bool save_result(int n, double *result){
     int idx = 0;
     for (int r=0; r<n; r++) {
         for (int c=r+1; c<n; c++) {
-            fprintf(fptr, "dist[%i,%i] = %f\n", r, c, result[idx]);
+            fprintf(fptr, "%s %s = %f\n", series_list[r].ticker, series_list[c].ticker, result[idx++]);
             idx++;
         }
     }
@@ -43,33 +43,35 @@ void example() {
     }
 
     // load time series 
-    int n = 6;
-    double s1[] = {0., 0, 1, 2, 1, 0, 1, 0, 0};
-    double s2[] = {0., 1, 2, 0, 0, 0, 0, 0, 0};
-    double s3[] = {1., 2, 0, 0, 0, 0, 0, 1, 1};
-    double s4[] = {0., 0, 1, 2, 1, 0, 1, 0, 0};
-    double s5[] = {0., 1, 2, 0, 0, 1, 0, 0, 0};
-    double s6[] = {1., 2, 0, 0, 0, 0, 0, 1, 1};
-    double *s[] = {s1, s2, s3, s4, s5, s6};
+    printf("Loading time series...\n");
+    TickerSeries series[MAX_TICKERS];
+    int num_series = 0;
+    load_series_from_csv("/home/dani/Documents/git/Master/dados/bdrs.csv", series, &num_series);
+    printf("Loaded %d time series\n", num_series);
 
-    idx_t lengths[n];
-    for (int i=0; i<n; i++) {
-        lengths[i] = 9;
+    double *s[MAX_TICKERS];
+    idx_t lengths[MAX_TICKERS];
+
+    for (int i = 0; i < num_series; i++) {
+        s[i] = series[i].close;
+        lengths[i] = series[i].count;
     }
 
-
-    idx_t result_length = n*(n-1) / 2;
+    idx_t result_length = num_series * (num_series - 1) / 2;
     double *result = (double *)malloc(sizeof(double) * result_length);
     if (!result) {
         printf("Error: cannot allocate memory for result (size=%zu)\n", result_length);
         return;
     }
 
+    printf("DTW Settings and run...\n");
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    dtw_distances_ptrs_parallel(s, n, lengths, result, &block, &settings);
+    dtw_distances_ptrs_parallel(s, num_series, lengths, result, &block, &settings);
+    printf("DTW Completed\n");
 
-    save_result(n, result);
+    save_result(num_series, result, series);
+    printf("Result saved\n");
 
     free(result);
 }
