@@ -1,4 +1,4 @@
-#define MAX_TICKERS 200
+#define MAX_TICKERS 500
 #define MAX_TIMEPOINTS 5000
 #define MAX_TICKER_NAME 32
 

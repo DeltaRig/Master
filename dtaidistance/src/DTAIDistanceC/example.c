@@ -41,7 +41,8 @@ void example(const char *file_path, int max_assets) {
 
     // load time series 
     printf("Loading time series...\n");
-    TickerSeries series[MAX_TICKERS];
+    //    TickerSeries series[MAX_TICKERS];
+    TickerSeries *series = malloc(sizeof(TickerSeries) * MAX_TICKERS);
     int num_series = 0;
     load_series_from_csv(file_path, series, &num_series, max_assets);
     printf("Loaded %d time series\n", num_series);
