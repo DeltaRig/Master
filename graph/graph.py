@@ -14,6 +14,23 @@ def load_data_from_single_csv(csv_path):
     pivot_df = df.pivot(index='Date', columns='Ticker', values='Adj Close')
     return pivot_df.dropna(axis=0)  # Remove datas com valores ausentes
 
+def dtw_distance(s1, s2):
+    n, m = len(s1), len(s2)
+    dtw_matrix = np.full((n+1, m+1), np.inf)
+    dtw_matrix[0, 0] = 0
+
+    for i in range(1, n+1):
+        for j in range(1, m+1):
+            cost = abs(s1[i-1] - s2[j-1])
+            last_min = min(
+                dtw_matrix[i-1, j],    # Inserção
+                dtw_matrix[i, j-1],    # Deleção
+                dtw_matrix[i-1, j-1]   # Match
+            )
+            dtw_matrix[i, j] = cost + last_min
+
+    return dtw_matrix[n, m]
+
 # ===== 2. Calcular DTW para todos os pares e salvar =====
 def compute_dtw_all_pairs(price_df):
     dtw_results = []
@@ -120,7 +137,7 @@ def cluster_dtw_and_plot_network(G, dtw_results, n_clusters=4):
 
 
 # ==========
-csv_path = "/home/dani/Documents/git/Master/finviz-platform/dados/master_tickers.csv"
+csv_path = "/home/dani/Documents/git/Master/dados/master_tickers.csv"
 price_df = load_data_from_single_csv(csv_path)
 
 start_time = time.time()
@@ -145,4 +162,4 @@ plot_most_correlated(price_df, most_similar[0], most_similar[1])
 G = create_dtw_graph(dtw_results, top_percent=0.1)
 plot_dwt_graph(G)
 
-cluster_dtw_and_plot_network(G, dtw_results, n_clusters=5)
+#cluster_dtw_and_plot_network(G, dtw_results, n_clusters=5)

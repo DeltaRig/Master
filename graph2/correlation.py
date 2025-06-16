@@ -4,6 +4,7 @@ from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from scipy.stats import spearmanr
 from itertools import combinations
+import time
 
 # === Parte 1: Calcular e salvar as correlações ===
 def load_data(csv_path):
@@ -20,33 +21,29 @@ def save_sorted_correlation(matrix, output_file, descending=True):
                 pairs.append((i, j, value))
     sorted_pairs = sorted(pairs, key=lambda x: abs(x[2]), reverse=descending)
 
-    print(matrix)
+    # print(matrix)
 
     pd.DataFrame(sorted_pairs, columns=['Ticker1', 'Ticker2', 'Correlation']).to_csv(output_file, index=False)
 
 # Pearson
 def compute_pearson(df):
-    corr = df.corr(method='pearson')
+    corr = df.corr(method='pearson', min_periods=100)
     save_sorted_correlation(corr, "pearson_sorted.csv")
 
 # Spearman
 def compute_spearman(df):
+    #print(df)
     corr = df.corr(method='spearman')
     save_sorted_correlation(corr, "spearman_sorted.csv")
 
-# DTW using euclidean
-def compute_dtw(df):
-    tickers = df.columns.tolist()
-    dtw_matrix = pd.DataFrame(index=tickers, columns=tickers, dtype=float)
-    for t1, t2 in combinations(tickers, 2):
-        dist, _ = fastdtw(df[t1].values, df[t2].values, dist=euclidean)
-        dtw_matrix.loc[t1, t2] = dist
-        dtw_matrix.loc[t2, t1] = dist
-    np.fill_diagonal(dtw_matrix.values, 0.0)
-    save_sorted_correlation(dtw_matrix, "dtw_sorted.csv", descending=False)
-
 if __name__ == "__main__":
-    df = load_data("/home/dani/Documents/git/Master/finviz-platform/dados/acoes_ibov.csv") 
+    filename = "master_tickers"
+    df = load_data(f"/home/dani/Documents/git/Master/finviz-platform/dados/{filename}.csv") 
+    start_time = time.time()
     compute_pearson(df)
-    compute_spearman(df)
-   # compute_dtw(df)
+    #compute_spearman(df)
+
+    end_time = time.time()
+    elapsed = end_time - start_time
+    print(f"Executed for {filename} file 623 ativos")
+    print(f"Elapsed time: {elapsed} seconds")
