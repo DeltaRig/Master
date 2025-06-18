@@ -56,3 +56,4 @@ gcc -o example example.c \
     -Wall -g -fopenmp -lm \
     -I./DTAIDistanceC/
     
+OMP_NUM_THREADS=8 ./exemple <path> <quantity>

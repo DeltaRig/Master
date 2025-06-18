@@ -93,6 +93,8 @@ int main(int argc, const char * argv[]) {
         fprintf(stderr, "Uso: %s <caminho_csv> <max_assets>\n", argv[0]);
         return 1;
     }
+    printf("Max OpenMP threads = %d\n", omp_get_max_threads());
+
 
     const char *file_path = argv[1];
     int max_assets = atoi(argv[2]); 
