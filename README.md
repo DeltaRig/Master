@@ -9,3 +9,18 @@
 
 coletor yahoo
 github.com/Rodrigo-Palma/fifnviz-platform
+
+
+Para utilizar os nossos serviços, uma conta foi criada para você. Os detalhes são os seguintes:
+Servidor: pantanal.lad.pucrs.br
+
+Por favor, troque a sua senha assim que for possível.
+Procedimento para mudança de senha:
+1. Logar na pantanal
+$ ssh user@atlantica.lad.pucrs.br
+1. Trocar a senha:
+$ yppasswd
+e seguir as instruções apresentadas.
+
+Pedimos que leia nossa apostila de utilização do LAD. Ela foi derivada de um minicurso para novos grupos de usuários e é fortemente recomendada para que entendas o ambiente do LAD.
+https://lad-pucrs.github.io/docs/
