@@ -16,7 +16,7 @@
 // n is the number of time series
 bool save_result(int n, double *result, TickerSeries *series_list){
     FILE *fptr;
-    fptr = fopen("dtw_result.txt", "w");
+    fptr = fopen("dtw_result.csv", "w");
     if (fptr == NULL) {
         printf("Error opening file!\n");
         return 1; // Indicate an error
@@ -25,7 +25,7 @@ bool save_result(int n, double *result, TickerSeries *series_list){
     int idx = 0;
     for (int r=0; r<n; r++) {
         for (int c=r+1; c<n; c++) {
-            fprintf(fptr, "%s %s = %f\n", series_list[r].ticker, series_list[c].ticker, result[idx++]);
+            fprintf(fptr, "%s; %s; %f;\n", series_list[r].ticker, series_list[c].ticker, result[idx++]);
         }
     }
 
@@ -69,10 +69,12 @@ void example(TickerSeries *series, int num_series, int aggreation) {
     diff_t2 = ((double)end.tv_sec * 1e9 + end.tv_nsec) - ((double)start.tv_sec * 1e9 + start.tv_nsec);
     printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2 / 1000000);
 
-    if(aggreation == 1){
+    if(aggreation > 0){
     // Place for aggregation function (e.g., clustering, statistics)
     // aggregate_result(num_series, result, series);
-        aggregate_kmedoids(num_series, result, series, 3); // with k = 3
+    //    aggregate_kmedoids(num_series, result, series, aggreation); // with k = 3
+        dbscan(num_series, result, series, 200.0, 2); // defining `eps` and `minPts`
+
     //
     printf("aggreation done");
     }

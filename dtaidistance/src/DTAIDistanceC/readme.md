@@ -81,7 +81,7 @@ gcc -o example example.c \
 - <series_quantity>: Number of time series to process
 - <aggregation_flag>:
 - - 0: Run without aggregation
-- - 1: Run with aggregation
+- - number of k to use in aggregation
 
 
 ### 🧪 Example:
@@ -128,3 +128,11 @@ ladrun -np --exclusive -n 3 ./mpi_merg
 srun -N 1 -n 1 -t 10 --exclusive ./dtadistance/src/DTAIDistanceC/example dados/master_tickers.csv 8 0 > out.txt
 
 srun -N 1 -n 1 -t 96 --exclusive ./run.sh >> out100.txt
+
+## Aggregation
+
+SDBSCAN
+Dataset Size	Recommended minPts
+Very small (<50)	2–4
+Small–medium (100–500)	4–10
+Large (>500)	10–50
