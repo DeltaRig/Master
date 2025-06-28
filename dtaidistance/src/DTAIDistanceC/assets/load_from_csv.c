@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "load_series_from_csv.h"
+#include <stdbool.h>
+#include "load_from_csv.h"
 #include "types.h"
 
 
@@ -79,4 +80,35 @@ int load_series_from_csv(const char *filename, TickerSeries *series_list, int *n
 
     fclose(fp);
     return 0;
+}
+
+bool load_result_from_csv(const char *filename, double *result, int num_series) {
+    FILE *fptr = fopen(filename, "r");
+    if (!fptr) {
+        perror("fopen");
+        return false;
+    }
+
+    int expected_len = num_series * (num_series - 1) / 2;
+    int count = 0;
+    char line[256];
+
+    while (fgets(line, sizeof(line), fptr) && count < expected_len) {
+        // expected: TICKER1; TICKER2; VALUE;
+        char *token = strtok(line, ";"); // skip TICKER1
+        token = strtok(NULL, ";");       // skip TICKER2
+        token = strtok(NULL, ";");       // get VALUE
+        if (token) {
+            result[count++] = atof(token);
+        }
+    }
+
+    fclose(fptr);
+
+    if (count != expected_len) {
+        fprintf(stderr, "Warning: expected %d distances, but got %d\n", expected_len, count);
+        return false;
+    }
+
+    return true;
 }

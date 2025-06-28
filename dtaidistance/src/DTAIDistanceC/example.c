@@ -9,7 +9,8 @@
 
 #include "dd_dtw.h"
 #include "dd_dtw_openmp.h"
-#include "assets/load_series_from_csv.h"
+#include "assets/load_from_csv.h"
+#include "assets/call_aggregation.h"
 #include "assets/aggregation.h"
 #include <stdio.h>
 
@@ -35,7 +36,7 @@ bool save_result(int n, double *result, TickerSeries *series_list){
 
 
 
-void example(TickerSeries *series, int num_series, int aggreation) {
+void example(TickerSeries *series, int num_series, int aggregation_type) {
     double *s[num_series];
     idx_t lengths[num_series];
 
@@ -69,14 +70,8 @@ void example(TickerSeries *series, int num_series, int aggreation) {
     diff_t2 = ((double)end.tv_sec * 1e9 + end.tv_nsec) - ((double)start.tv_sec * 1e9 + start.tv_nsec);
     printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2 / 1000000);
 
-    if(aggreation > 0){
-    // Place for aggregation function (e.g., clustering, statistics)
-    // aggregate_result(num_series, result, series);
-    //    aggregate_kmedoids(num_series, result, series, aggreation); // with k = 3
-        dbscan(num_series, result, series, 200.0, 2); // defining `eps` and `minPts`
-
-    //
-    printf("aggreation done");
+    if (aggregation_type > 0) {
+        run_aggregation(num_series, result, series, aggregation_type, true); // 👈 use result from memory
     }
 
     save_result(num_series, result, series);
@@ -87,13 +82,17 @@ void example(TickerSeries *series, int num_series, int aggreation) {
 
 int main(int argc, const char *argv[]) {
     if (argc < 4) {
-        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <aggreation true or false 1/0>\n", argv[0]);
+        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <aggregation_type> [--reuse]\n", argv[0]);
         return 1;
     }
 
+    // to jump to aggregation directly when we already have the result
+    bool reuse = (argc >= 5 && strcmp(argv[4], "--reuse") == 0);
+
+
     const char *file_path = argv[1];
     int max_assets = atoi(argv[2]);
-    int aggreation = atoi(argv[3]);
+    int aggregation = atoi(argv[3]);
 
     printf("Max OpenMP threads = %d\n", omp_get_max_threads());
 
@@ -116,11 +115,24 @@ int main(int argc, const char *argv[]) {
         free(series);
         return 1;
     }
-
     printf("Loaded %d time series\n", num_series);
 
-    printf("Run DTW example ...\n");
-    example(series, num_series, aggreation);
+    if (reuse) {
+        printf("Reusing existing DTW result for aggregation.\n"); 
+
+        idx_t result_length = num_series * (num_series - 1) / 2;
+        double *result = malloc(sizeof(double) * result_length);
+        if (!result) {
+            printf("Error allocating memory for result.\n");
+            return 1;
+        }
+
+        run_aggregation(num_series, result, series, aggregation, false);  // result not computed yet
+        free(result);
+    } else {
+        example(series, num_series, aggregation);
+    }
+
 
     free(series);
     return 0;

@@ -41,7 +41,7 @@ project-root/
 │
 ├── DTAIDistanceC/ # C implementation of DTW and other distances
 ├── assets/
-│ ├── load_series_from_csv.c # Load time series from CSV
+│ ├── load_from_csv.c # Load time series from CSV
 │ └── aggregation.c # Aggregation logic (e.g., sum, average)
 ├── example.c # Main runner file
 ├── run.sh # Script to execute the binary
@@ -51,9 +51,9 @@ project-root/
 
 ## ⚙️ Requirements
 
+- Git
 - GCC with OpenMP support
 - `libomp-dev` (Linux)
-- Criterion (for testing, optional)
 
 ### 🧱 Install OpenMP (Ubuntu example):
 
@@ -66,7 +66,7 @@ sudo apt install libomp-dev
 Use the following gcc command to compile the full application, including CSV parsing and aggregation:
 ```
 gcc -o example example.c \
-    assets/load_series_from_csv.c assets/aggregation.c \
+    assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c \
     DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c \
     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
     -Wall -g -fopenmp -lm \
@@ -114,8 +114,8 @@ scp -r /home/dani/Documents/git/Master/dados daniela.rigoli@sparta.pucrs.br:
 ```
 
 ```
-scp -r dados daniela.rigoli@sparta.pucrs.br:
-scp -r dtaidistance daniela.rigoli@sparta.pucrs.br:
+scp -r dados daniela.rigoli@pantanal.lad.pucrs.br:
+scp -r dtaidistance daniela.rigoli@pantanal.lad.pucrs.br:
 ```
 
 ### ⚙️ Job Execution

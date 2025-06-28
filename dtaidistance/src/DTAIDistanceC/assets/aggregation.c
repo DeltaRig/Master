@@ -13,6 +13,8 @@
 #include <string.h>
 // #include <time.h>
 #include "types.h" 
+#include <math.h>
+#include "aggregation.h"
 
 void save_cluster_labels_csv(const char *filename, int num_series, TickerSeries *series, int *labels, bool print_stdout, int noise_label) {
     FILE *f = fopen(filename, "w");
@@ -146,24 +148,20 @@ void aggregate_kmedoids(int num_series, double *result, TickerSeries *series, in
     }
 
     // Save cluster result to CSV
-    save_cluster_labels_csv("dtw_clusters.csv", num_series, series, labels, false, -1);
+    save_cluster_labels_csv("dtw_kmedoids_clusters.csv", num_series, series, labels, false, -1);
 
     save_distance_matrix_csv(num_series, result, series);
 }
 
 // DBSCAN is a clustering algorithm that identifies groups of data points that are close to each other, even if they do not have a circular or square shape. 
 // Ester et al., 1996
-// dapted to work on a condensed distance matrix
-
+// adapted to work on a condensed distance matrix
 // Access distance from the condensed matrix
 double get_dtw_dist(int i, int j, double *result) {
     if (i == j) return 0.0;
     if (i < j) return result[(j * (j - 1)) / 2 + i];
     return result[(i * (i - 1)) / 2 + j];
 }
-
-#include <stdbool.h>
-#include <float.h>
 
 #define NOISE -1
 #define UNCLASSIFIED -2
@@ -232,6 +230,90 @@ void dbscan(int num_series, double *result, TickerSeries *series, double eps, in
     printf("\n=== DBSCAN Clusters (eps=%.2f, minPts=%d) ===\n", eps, minPts);
     save_cluster_labels_csv("dtw_dbscan_clusters.csv", num_series, series, labels, true, NOISE);
 
-
     save_distance_matrix_csv(num_series, result, series);
+}
+
+
+
+void hierarchical_clustering(int n, double *result, TickerSeries *series, int desired_k) {
+    Cluster clusters[MAX_CLUSTERS];
+    int labels[MAX_CLUSTERS];
+
+    for (int i = 0; i < n; i++) {
+        clusters[i].members = malloc(sizeof(int));
+        clusters[i].members[0] = i;
+        clusters[i].size = 1;
+        clusters[i].active = true;
+        labels[i] = -1;
+    }
+
+    int num_active = n;
+    while (num_active > desired_k) {
+        double min_dist = DBL_MAX;
+        int best_a = -1, best_b = -1;
+
+        // Find closest pair of clusters
+        for (int a = 0; a < n; a++) {
+            if (!clusters[a].active) continue;
+            for (int b = a + 1; b < n; b++) {
+                if (!clusters[b].active) continue;
+
+                // Compute average linkage distance
+                double sum = 0.0;
+                for (int i = 0; i < clusters[a].size; i++) {
+                    for (int j = 0; j < clusters[b].size; j++) {
+                        int idx1 = clusters[a].members[i];
+                        int idx2 = clusters[b].members[j];
+                        sum += get_dtw_dist(idx1, idx2, result);
+                    }
+                }
+                double avg_dist = sum / (clusters[a].size * clusters[b].size);
+
+                if (avg_dist < min_dist) {
+                    min_dist = avg_dist;
+                    best_a = a;
+                    best_b = b;
+                }
+            }
+        }
+
+        // Merge clusters best_a and best_b
+        int new_size = clusters[best_a].size + clusters[best_b].size;
+        int *new_members = malloc(sizeof(int) * new_size);
+        for (int i = 0; i < clusters[best_a].size; i++)
+            new_members[i] = clusters[best_a].members[i];
+        for (int i = 0; i < clusters[best_b].size; i++)
+            new_members[clusters[best_a].size + i] = clusters[best_b].members[i];
+
+        free(clusters[best_a].members);
+        clusters[best_a].members = new_members;
+        clusters[best_a].size = new_size;
+
+        free(clusters[best_b].members);
+        clusters[best_b].members = NULL;
+        clusters[best_b].size = 0;
+        clusters[best_b].active = false;
+
+        num_active--;
+    }
+
+    // Assign final labels
+    int cluster_id = 0;
+    for (int i = 0; i < n; i++) {
+        if (!clusters[i].active) continue;
+        for (int j = 0; j < clusters[i].size; j++) {
+            labels[clusters[i].members[j]] = cluster_id;
+        }
+        cluster_id++;
+    }
+
+    // Output
+    save_cluster_labels_csv("dtw_hierarchical_clusters.csv", n, series, labels, false, -1);
+    save_distance_matrix_csv(n, result, series);
+    printf("Hierarchical clustering completed and saved.\n");
+
+    for (int i = 0; i < n; i++) {
+        if (clusters[i].members)
+            free(clusters[i].members);
+    }
 }

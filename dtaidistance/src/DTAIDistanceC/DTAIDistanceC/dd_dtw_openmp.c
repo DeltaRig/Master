@@ -114,7 +114,7 @@ idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
     // Using schedule("static, 1") is also fast for the same reason (neighbor rows are almost
     // the same length, thus a circular assignment works well) but assumes all DTW computations take
     // the same amount of time.
-    #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
+    #pragma omp parallel for private(r_i, c_i, r, c) schedule(dynamic)
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
         r = block->rb + r_i;
         c_i = 0;
