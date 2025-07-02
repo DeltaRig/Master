@@ -70,7 +70,7 @@ void save_distance_matrix_csv(int n, double *result, TickerSeries *series) {
     printf("Full distance matrix saved to dtw_distance_matrix.csv\n");
 }
 
-void aggregate_kmedoids(int num_series, double *result, TickerSeries *series, int k) {
+void aggregate_kmedoids(int num_series, double *result, TickerSeries *series, int k, int *labels) {
     if (k >= num_series) {
         printf("k must be less than the number of series\n");
         return;
@@ -83,7 +83,6 @@ void aggregate_kmedoids(int num_series, double *result, TickerSeries *series, in
         medoids[i] = i;
     }
 
-    int labels[num_series];
     bool changed = true;
     int max_iter = 100, iter = 0;
 
@@ -136,16 +135,16 @@ void aggregate_kmedoids(int num_series, double *result, TickerSeries *series, in
         }
     }
 
-    // 4. Print the clusters
-    printf("\n=== K-Medoids Clusters (k=%d) ===\n", k);
-    for (int m = 0; m < k; m++) {
-        printf("Cluster %d (medoid: %s):\n", m, series[medoids[m]].ticker);
-        for (int i = 0; i < num_series; i++) {
-            if (labels[i] == m) {
-                printf("  - %s\n", series[i].ticker);
-            }
-        }
-    }
+    // Print the clusters
+    //printf("\n=== K-Medoids Clusters (k=%d) ===\n", k);
+    //for (int m = 0; m < k; m++) {
+    //    printf("Cluster %d (medoid: %s):\n", m, series[medoids[m]].ticker);
+    //    for (int i = 0; i < num_series; i++) {
+    //        if (labels[i] == m) {
+    //            printf("  - %s\n", series[i].ticker);
+    //        }
+    //    }
+    //}
 
     // Save cluster result to CSV
     save_cluster_labels_csv("dtw_kmedoids_clusters.csv", num_series, series, labels, false, -1);
@@ -169,8 +168,7 @@ double get_dtw_dist(int i, int j, double *result) {
 
 // Density-Based Spatial Clustering of Applications with Noise
 // Choose eps using domain knowledge or plot the k-distance graph.
-void dbscan(int num_series, double *result, TickerSeries *series, double eps, int minPts) {
-    int labels[num_series];
+void dbscan(int num_series, double *result, TickerSeries *series, double eps, int minPts, int *labels) {
     for (int i = 0; i < num_series; i++) labels[i] = UNCLASSIFIED;
 
     int cluster_id = 0;
@@ -235,9 +233,8 @@ void dbscan(int num_series, double *result, TickerSeries *series, double eps, in
 
 
 
-void hierarchical_clustering(int n, double *result, TickerSeries *series, int desired_k) {
+void hierarchical_clustering(int n, double *result, TickerSeries *series, int desired_k, int *labels) {
     Cluster clusters[MAX_CLUSTERS];
-    int labels[MAX_CLUSTERS];
 
     for (int i = 0; i < n; i++) {
         clusters[i].members = malloc(sizeof(int));
@@ -307,13 +304,133 @@ void hierarchical_clustering(int n, double *result, TickerSeries *series, int de
         cluster_id++;
     }
 
-    // Output
-    save_cluster_labels_csv("dtw_hierarchical_clusters.csv", n, series, labels, false, -1);
-    save_distance_matrix_csv(n, result, series);
-    printf("Hierarchical clustering completed and saved.\n");
-
     for (int i = 0; i < n; i++) {
         if (clusters[i].members)
             free(clusters[i].members);
     }
+
+        // Output
+    save_cluster_labels_csv("dtw_clusters.csv", n, series, labels, false, -1);
+    save_distance_matrix_csv(n, result, series);
+    printf("clustering completed and saved.\n");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Evaluate Aggregation
+double silhouette_score(int n, double *result, int *labels, int k) {
+    double total_score = 0.0;
+    int valid_points = 0;
+
+    for (int i = 0; i < n; i++) {
+        int ci = labels[i];
+        if (ci < 0) continue; // skip noise or unclassified
+
+        double a_i = 0.0;
+        int a_count = 0;
+        double b_i = DBL_MAX;
+
+        // First, compute a(i): avg intra-cluster distance
+        for (int j = 0; j < n; j++) {
+            if (i == j) continue;
+            if (labels[j] == ci) {
+                a_i += get_dtw_dist(i, j, result);
+                a_count++;
+            }
+        }
+        if (a_count > 0) a_i /= a_count;
+        else a_i = 0.0;
+
+        // Then compute b(i): smallest average distance to other clusters
+        for (int c = 0; c < k; c++) {
+            if (c == ci) continue;
+            double b_sum = 0.0;
+            int b_count = 0;
+            for (int j = 0; j < n; j++) {
+                if (labels[j] == c) {
+                    b_sum += get_dtw_dist(i, j, result);
+                    b_count++;
+                }
+            }
+            if (b_count > 0) {
+                double b_avg = b_sum / b_count;
+                if (b_avg < b_i) {
+                    b_i = b_avg;
+                }
+            }
+        }
+
+        double s = 0.0;
+        if (a_i < b_i)
+            s = 1.0 - (a_i / b_i);
+        else if (a_i > b_i)
+            s = (b_i / a_i) - 1.0;
+
+        total_score += s;
+        valid_points++;
+    }
+
+    return (valid_points > 0) ? (total_score / valid_points) : -1.0;
+}
+
+double dunn_index(int n, double *result, int *labels, int k) {
+    double min_intercluster = DBL_MAX;
+    double max_intracluster = 0.0;
+
+    // Intra-cluster distances (max per cluster)
+    for (int ci = 0; ci < k; ci++) {
+        for (int i = 0; i < n; i++) {
+            if (labels[i] != ci) continue;
+            for (int j = i + 1; j < n; j++) {
+                if (labels[j] != ci) continue;
+                double d = get_dtw_dist(i, j, result);
+                if (d > max_intracluster) {
+                    max_intracluster = d;
+                }
+            }
+        }
+    }
+
+    // Inter-cluster distances (min between clusters)
+    for (int ci = 0; ci < k; ci++) {
+        for (int cj = ci + 1; cj < k; cj++) {
+            for (int i = 0; i < n; i++) {
+                if (labels[i] != ci) continue;
+                for (int j = 0; j < n; j++) {
+                    if (labels[j] != cj) continue;
+                    double d = get_dtw_dist(i, j, result);
+                    if (d < min_intercluster) {
+                        min_intercluster = d;
+                    }
+                }
+            }
+        }
+    }
+
+    if (max_intracluster == 0.0) return -1.0;  // avoid division by 0
+    return min_intercluster / max_intracluster;
 }
