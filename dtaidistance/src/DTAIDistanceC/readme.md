@@ -81,7 +81,7 @@ gcc -o example example.c \
 - <series_quantity>: Number of time series to process
 - <aggregation_flag>:
 - - 0: Run without aggregation
-- - number of k to use in aggregation
+- - the option of aggregation
 
 
 ### 🧪 Example:
