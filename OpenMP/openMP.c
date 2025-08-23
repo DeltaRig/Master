@@ -1,3 +1,4 @@
+// code just to test OpenMP installation
 // OpenMP header
 #include <omp.h>
 #include <stdio.h>
