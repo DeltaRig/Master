@@ -106,6 +106,39 @@ br_tickers = list(set(ibov_tickers + bdrs_tickers))
 def build_filename(period_name, list_name, interval):
     return f"{period_name}_{list_name}_{interval}.csv"
 
+from datetime import datetime
+
+def save_with_info(df, filename,log_file="data_summary.log"):
+    # Count rows and tickers
+    n_rows = len(df)
+    n_tickers = df["Ticker"].nunique() if "Ticker" in df.columns else 0
+
+    sysdate = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Prepare log entry (one line per file)
+    log_line = f"{sysdate},normalized,{filename},{n_rows},{n_tickers}\n"
+
+    # Breakdown per ticker
+    if "Ticker" in df.columns:
+        counts = df["Ticker"].value_counts().sort_index()
+        log_line += "   Rows per ticker:"
+        for t, c in counts.items():
+            log_line += f"\n     {t}: {c}"
+
+    # Write header if file doesn’t exist
+    if not os.path.exists(log_file):
+        with open(log_file, "w") as f:
+            f.write("sysdate,tag,filename,n_rows,n_tickers\n")
+
+    # Append log line
+    with open(log_file, "a") as f:
+        f.write(log_line)
+
+    # (optional) still print minimal info to console
+    # print(log_line.strip())
+
+
+
 def normalize_prices(df, filename):
     def _normalize(group):
         scaler = MinMaxScaler()
@@ -124,6 +157,10 @@ def normalize_prices(df, filename):
 
     df_norm.to_csv(f"normalized/{filename}", index=False)
     print(f"✅ Normalized saved: normalized_{filename}")
+
+    # save summary in log file
+    save_with_info(df_norm, f"normalized/{filename}")
+
 
 
 def download_or_update(period_name, list_name, tickers, interval, keep_window):
@@ -200,7 +237,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window):
 # RUN PIPELINE
 # --------------------------
 for period_name, interval, window in configs:
-    df_final = download_or_update(period_name, "sample", sample, interval, window)
+    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window)
 
 # delete old data
 # 
