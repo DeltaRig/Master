@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, timezone
 # CONFIG
 # --------------------------
 configs = [
-    ("10years", "1d", timedelta(days=365*10)),
+    ("2years", "1d", timedelta(days=365*2)),
+    ("6months", "1d", timedelta(days=30*6)),
     ("7days", "1h", timedelta(days=7)),
     ("24hours", "1m", timedelta(days=1))
 ]
@@ -93,10 +94,11 @@ with open("/home/dani/Documents/git/Master/dados/pre-NASDAQ.csv", "r") as f:
     lines = f.readlines()
 nasdaq = [line.strip().split(',')[0] for line in lines if line.strip()]
 
-master_tickers_br_EUA = list(set(ibov_tickers + sp500 + nasdaq))
+master_tickers_br_EUA = list(set(ibov_tickers + sp500 + nasdaq)) 
 
 sample = ['GOGL34.SA', 'GOOGL', 'GOOG', 'PETR3.SA', 'PETR4.SA']
 
+br_tickers = list(set(ibov_tickers + bdrs_tickers))
 
 # --------------------------
 # HELPERS
@@ -104,13 +106,25 @@ sample = ['GOGL34.SA', 'GOOGL', 'GOOG', 'PETR3.SA', 'PETR4.SA']
 def build_filename(period_name, list_name, interval):
     return f"{period_name}_{list_name}_{interval}.csv"
 
-def normalize_close(df, filename):
+def normalize_prices(df, filename):
     def _normalize(group):
         scaler = MinMaxScaler()
-        group['Close'] = scaler.fit_transform(group[['Close']])
+        # Normalize OHLC + Adj Close
+        cols_to_scale = ["Open", "High", "Low", "Close", "Adj Close"]
+        group[cols_to_scale] = scaler.fit_transform(group[cols_to_scale])
         return group
 
     df_norm = df.groupby('Ticker').apply(_normalize, include_groups=False)
+
+    # Keep same column order
+    cols = ["DateTime", "Open", "High", "Low", "Close", "Adj Close", "Volume", "Ticker"]
+    if "Date" in df_norm.columns:  # preserve if added
+        cols.insert(1, "Date")
+    if "Time" in df_norm.columns:  # preserve if added
+        cols.append("Time")
+
+    df_norm = df_norm[cols]
+
     df_norm.to_csv(f"normalized_{filename}", index=False)
     print(f"✅ Normalized saved: normalized_{filename}")
 
@@ -181,7 +195,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window):
     print(f"💾 Saved {filename} with {len(df)} rows")
 
     # Normalize
-    normalize_close(df.copy(), filename)
+    normalize_prices(df.copy(), filename)
     return df
 
 # --------------------------
