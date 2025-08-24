@@ -109,24 +109,22 @@ def build_filename(period_name, list_name, interval):
 def normalize_prices(df, filename):
     def _normalize(group):
         scaler = MinMaxScaler()
-        # Normalize OHLC + Adj Close
         cols_to_scale = ["Open", "High", "Low", "Close", "Adj Close"]
         group[cols_to_scale] = scaler.fit_transform(group[cols_to_scale])
         return group
 
-    df_norm = df.groupby('Ticker').apply(_normalize, include_groups=False)
+    df_norm = df.groupby('Ticker').apply(_normalize, include_groups=False).reset_index(drop=False)
 
-    # Keep same column order
+    # Keep same column order if they exist
     cols = ["DateTime", "Open", "High", "Low", "Close", "Adj Close", "Volume", "Ticker"]
-    if "Date" in df_norm.columns:  # preserve if added
-        cols.insert(1, "Date")
-    if "Time" in df_norm.columns:  # preserve if added
+    if "Time" in df_norm.columns:
         cols.append("Time")
 
     df_norm = df_norm[cols]
 
-    df_norm.to_csv(f"normalized_{filename}", index=False)
+    df_norm.to_csv(f"normalized/{filename}", index=False)
     print(f"✅ Normalized saved: normalized_{filename}")
+
 
 def download_or_update(period_name, list_name, tickers, interval, keep_window):
     filename = build_filename(period_name, list_name, interval)
@@ -191,7 +189,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window):
         df["Time"] = df["DateTime"].dt.time
 
     # Save
-    df.to_csv(filename, index=False)
+    df.to_csv(f"data/{filename}", index=False)
     print(f"💾 Saved {filename} with {len(df)} rows")
 
     # Normalize
