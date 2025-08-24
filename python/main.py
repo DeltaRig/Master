@@ -8,10 +8,11 @@ from datetime import datetime, timedelta, timezone
 # CONFIG
 # --------------------------
 configs = [
-   # ("2years", "1d", timedelta(days=365*2)),
-   # ("6months", "1d", timedelta(days=30*6)),
-    ("7days", "1h", timedelta(days=7)),
-    ("24hours", "1m", timedelta(days=1))
+    # stock market need be open
+    ("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
+    ("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
+    ("7days", "1h", timedelta(days=7), 5*7-(5*7*0.1)),  # 5 hours * 7 days - 10% buffer
+    ("24hours", "1m", timedelta(days=1), 1440-(1440*0.1))  # 1440 minutes in a day - 10% buffer
 ]
 
 # ============================================
@@ -88,9 +89,9 @@ EWQ=['MC','SU','TTE','AI','AIR','SAN','SAF','OR','BNP','RMS','CS','ELE','DG','BN
 
 INDY=['ADANIENT','ADANIPORTS','APOLLOHOSP','ASIANPAINT','AXISBANK','BAJAJ-AUTO','BAJFINANCE','BAJAJFINSV','BEL','BHARTIARTL','CIPLA','COALINDIA','DRREDDY','EICHERMOT','ETERNAL','GRASIM','HCLTECH','HDFCBANK','HDFCLIFE','HEROMOTOCO','HINDALCO','HINDUNILVR','ICICIBANK','INDUSINDBK','INFY','ITC','JIOFIN','JSWSTEEL','KOTAKBANK','LT','M\&M','MARUTI','NESTLEIND','NTPC','ONGC','POWERGRID','RELIANCE','SBILIFE','SHRIRAMFIN','SBIN','SUNPHARMA','TCS','TATACONSUM','TATAMOTORS','TATASTEEL','TECHM','TITAN','TRENT','ULTRACEMCO','WIPRO']
 
-master_tickers= ibov_tickers + sp500 + EWT + EWJ + UAE + MCHI + EWQ + INDY
+global_tickers= ibov_tickers + sp500 + EWT + EWJ + UAE + MCHI + EWQ + INDY
 
-with open("/home/dani/Documents/git/Master/dados/pre-NASDAQ.csv", "r") as f:
+with open("../dados/pre-NASDAQ.csv", "r") as f:
     lines = f.readlines()
 nasdaq = [line.strip().split(',')[0] for line in lines if line.strip()]
 
@@ -163,7 +164,7 @@ def normalize_prices(df, filename):
 
 
 
-def download_or_update(period_name, list_name, tickers, interval, keep_window):
+def download_or_update(period_name, list_name, tickers, interval, keep_window, minimum_rows):
     filename = build_filename(period_name, list_name, interval)
 
     if os.path.exists(filename):
@@ -195,9 +196,10 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window):
         for t in tickers:
             if t not in data.columns.levels[0]:
                 continue
-            df_t = data[t].reset_index()
-            df_t['Ticker'] = t
-            records.append(df_t)
+            if(len(data[t]) > minimum_rows):
+                df_t = data[t].reset_index()
+                df_t['Ticker'] = t
+                records.append(df_t)
         new_data = pd.concat(records)
     else:
         new_data = data.reset_index()
@@ -241,8 +243,8 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window):
 # --------------------------
 # RUN PIPELINE
 # --------------------------
-for period_name, interval, window in configs:
-    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window)
+for period_name, interval, window, minimum in configs:
+    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window, minimum)
 
 # delete old data
 # 
