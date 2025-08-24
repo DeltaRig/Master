@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 # CONFIG
 # --------------------------
 configs = [
-    ("2years", "1d", timedelta(days=365*2)),
-    ("6months", "1d", timedelta(days=30*6)),
+   # ("2years", "1d", timedelta(days=365*2)),
+   # ("6months", "1d", timedelta(days=30*6)),
     ("7days", "1h", timedelta(days=7)),
     ("24hours", "1m", timedelta(days=1))
 ]
@@ -104,7 +104,7 @@ br_tickers = list(set(ibov_tickers + bdrs_tickers))
 # HELPERS
 # --------------------------
 def build_filename(period_name, list_name, interval):
-    return f"{period_name}_{list_name}_{interval}.csv"
+    return f"{list_name}_{period_name}_{interval}.csv"
 
 from datetime import datetime
 
@@ -203,10 +203,15 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window):
         new_data = data.reset_index()
         new_data['Ticker'] = tickers[0]
 
-    # Ensure DateTime in UTC
-    new_data.rename(columns={"Datetime": "DateTime", "Date": "DateTime"}, inplace=True)
-    new_data["DateTime"] = pd.to_datetime(new_data["DateTime"], utc=True)
+    # Rename date columns consistently
+    if "Date" in new_data.columns:
+        new_data = new_data.rename(columns={"Date": "DateTime"})
+    elif "Datetime" in new_data.columns:
+        new_data = new_data.rename(columns={"Datetime": "DateTime"})
 
+    # Now this is always safe:
+    new_data["DateTime"] = pd.to_datetime(new_data["DateTime"], utc=True)
+    
     # Drop rows with missing OHLC
     new_data = new_data.dropna(subset=["Open", "High", "Low", "Close"], how="all")
 
