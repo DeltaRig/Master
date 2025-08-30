@@ -10,9 +10,9 @@ from datetime import datetime, timedelta, timezone
 configs = [
     # stock market need be open
     ("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
-    ("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
-    ("7days", "1h", timedelta(days=7), 5*7-(5*7*0.1)),  # 5 hours * 7 days - 10% buffer
-    ("24hours", "1m", timedelta(days=1), 1440-(1440*0.1))  # 1440 minutes in a day - 10% buffer
+    #("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
+    #("7days", "1h", timedelta(days=7), 5*7-(5*7*0.1)),  # 5 hours * 7 days - 10% buffer
+    #("24hours", "1m", timedelta(days=1), 1440-(1440*0.1))  # 1440 minutes in a day - 10% buffer
 ]
 
 # ============================================
@@ -72,8 +72,7 @@ interest_tickers = [
 ]
 
 # Get all S&P 500 listed companies from Wikipedia
-companiesDataSP500 = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
-sp500 = [t.replace('.', '-') for t in companiesDataSP500['Symbol']]
+sp500 = ['MMM','AOS','ABT','ABBV','ACN','ADBE','AMD','AES','AFL','A','APD','ABNB','AKAM','ALB','ARE','ALGN','ALLE','LNT','ALL','GOOGL','GOOG','MO','AMZN','AMCR','AEE','AEP','AXP','AIG','AMT','AWK','AMP','AME','AMGN','APH','ADI','AON','APA','APO','AAPL','AMAT','APTV','ACGL','ADM','ANET','AJG','AIZ','T','ATO','ADSK','ADP','AZO','AVB','AVY','AXON','BKR','BALL','BAC','BAX','BDX','BRK.B','BBY','TECH','BIIB','BLK','BX','XYZ','BK','BA','BKNG','BSX','BMY','AVGO','BR','BRO','BF.B','BLDR','BG','BXP','CHRW','CDNS','CZR','CPT','CPB','COF','CAH','KMX','CCL','CARR','CAT','CBOE','CBRE','CDW','COR','CNC','CNP','CF','CRL','SCHW','CHTR','CVX','CMG','CB','CHD','CI','CINF','CTAS','CSCO','C','CFG','CLX','CME','CMS','KO','CTSH','COIN','CL','CMCSA','CAG','COP','ED','STZ','CEG','COO','CPRT','GLW','CPAY','CTVA','CSGP','COST','CTRA','CRWD','CCI','CSX','CMI','CVS','DHR','DRI','DDOG','DVA','DAY','DECK','DE','DELL','DAL','DVN','DXCM','FANG','DLR','DG','DLTR','D','DPZ','DASH','DOV','DOW','DHI','DTE','DUK','DD','EMN','ETN','EBAY','ECL','EIX','EW','EA','ELV','EMR','ENPH','ETR','EOG','EPAM','EQT','EFX','EQIX','EQR','ERIE','ESS','EL','EG','EVRG','ES','EXC','EXE','EXPE','EXPD','EXR','XOM','FFIV','FDS','FICO','FAST','FRT','FDX','FIS','FITB','FSLR','FE','FI','F','FTNT','FTV','FOXA','FOX','BEN','FCX','GRMN','IT','GE','GEHC','GEV','GEN','GNRC','GD','GIS','GM','GPC','GILD','GPN','GL','GDDY','GS','HAL','HIG','HAS','HCA','DOC','HSIC','HSY','HPE','HLT','HOLX','HD','HON','HRL','HST','HWM','HPQ','HUBB','HUM','HBAN','HII','IBM','IEX','IDXX','ITW','INCY','IR','PODD','INTC','IBKR','ICE','IFF','IP','IPG','INTU','ISRG','IVZ','INVH','IQV','IRM','JBHT','JBL','JKHY','J','JNJ','JCI','JPM','K','KVUE','KDP','KEY','KEYS','KMB','KIM','KMI','KKR','KLAC','KHC','KR','LHX','LH','LRCX','LW','LVS','LDOS','LEN','LII','LLY','LIN','LYV','LKQ','LMT','L','LOW','LULU','LYB','MTB','MPC','MKTX','MAR','MMC','MLM','MAS','MA','MTCH','MKC','MCD','MCK','MDT','MRK','META','MET','MTD','MGM','MCHP','MU','MSFT','MAA','MRNA','MHK','MOH','TAP','MDLZ','MPWR','MNST','MCO','MS','MOS','MSI','MSCI','NDAQ','NTAP','NFLX','NEM','NWSA','NWS','NEE','NKE','NI','NDSN','NSC','NTRS','NOC','NCLH','NRG','NUE','NVDA','NVR','NXPI','ORLY','OXY','ODFL','OMC','ON','OKE','ORCL','OTIS','PCAR','PKG','PLTR','PANW','PSKY','PH','PAYX','PAYC','PYPL','PNR','PEP','PFE','PCG','PM','PSX','PNW','PNC','POOL','PPG','PPL','PFG','PG','PGR','PLD','PRU','PEG','PTC','PSA','PHM','PWR','QCOM','DGX','RL','RJF','RTX','O','REG','REGN','RF','RSG','RMD','RVTY','ROK','ROL','ROP','ROST','RCL','SPGI','CRM','SBAC','SLB','STX','SRE','NOW','SHW','SPG','SWKS','SJM','SW','SNA','SOLV','SO','LUV','SWK','SBUX','STT','STLD','STE','SYK','SMCI','SYF','SNPS','SYY','TMUS','TROW','TTWO','TPR','TRGP','TGT','TEL','TDY','TER','TSLA','TXN','TPL','TXT','TMO','TJX','TKO','TTD','TSCO','TT','TDG','TRV','TRMB','TFC','TYL','TSN','USB','UBER','UDR','ULTA','UNP','UAL','UPS','URI','UNH','UHS','VLO','VTR','VLTO','VRSN','VRSK','VZ','VRTX','VTRS','VICI','V','VST','VMC','WRB','GWW','WAB','WMT','DIS','WBD','WM','WAT','WEC','WFC','WELL','WST','WDC','WY','WSM','WMB','WTW','WDAY','WYNN','XEL','XYL','YUM','ZBRA','ZBH','ZTS']
 
 # 90 ativos Itaiwa
 EWT=['2330.TW','2454.TW','2317.TW','2303.TW','2308.TW','3711.TW','2412.TW','1301.TW','3034.TW','2891.TW','1303.TW','2882.TW','1216.TW','2881.TW','2886.TW','3008.TW','2002.TW','1326.TW','2327.TW','2884.TW','2382.TW','2379.TW','6415.TW','5871.TW','2357.TW','2885.TW','2892.TW','6488.TW','1101.TW','5880.TW','2344.TW','3481.TW','2207.TW','2603.TW','2409.TW','2395.TW','4938.TW','2408.TW','1590.TW','3045.TW','2880.TW','3105.TW','2912.TW','2049.TW','5347.TW','2345.TW','5876.TW','2301.TW','2883.TW','2887.TW','2474.TW','2890.TW','3037.TW','6505.TW','4904.TW','2324.TW','2492.TW','6669.TW','9921.TW','2377.TW','2354.TW','2353.TW','2888.TW','3231.TW','8299.TW','2105.TW','6239.TW','3702.TW','2801.TW','1102.TW','1402.TW','8464.TW','1476.TW','9910.TW','9904.TW','4958.TW','2347.TW','2356.TW','5269.TW','2633.TW','2385.TW','2834.TW','2823.TW','9945.TW','2542.TW','4743.TW','1227.TW','XTSLA.TW','TWD.TW','2418.TW']
@@ -98,6 +97,7 @@ nasdaq = [line.strip().split(',')[0] for line in lines if line.strip()]
 master_tickers_br_EUA = list(set(ibov_tickers + sp500 + nasdaq)) 
 
 sample = ['GOGL34.SA', 'GOOGL', 'GOOG', 'PETR3.SA', 'PETR4.SA']
+test_m = []
 
 br_tickers = list(set(ibov_tickers + bdrs_tickers))
 
@@ -196,14 +196,21 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
         for t in tickers:
             if t not in data.columns.levels[0]:
                 continue
-            if(len(data[t]) > minimum_rows):
+            if len(data[t]) >= minimum_rows:   # ✅ enforce minimum
                 df_t = data[t].reset_index()
                 df_t['Ticker'] = t
                 records.append(df_t)
+        if not records:   # in case no ticker passes the filter
+            print(f"⚠️ No tickers with >= {minimum_rows} rows for {filename}")
+            return df
         new_data = pd.concat(records)
     else:
+        if len(data) < minimum_rows:   # ✅ enforce minimum also for single ticker
+            print(f"⚠️ Skipping {tickers[0]} (only {len(data)} rows, need >= {minimum_rows})")
+            return df
         new_data = data.reset_index()
         new_data['Ticker'] = tickers[0]
+
 
     # Rename date columns consistently
     if "Date" in new_data.columns:
