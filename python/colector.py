@@ -97,7 +97,7 @@ nasdaq = [line.strip().split(',')[0] for line in lines if line.strip()]
 master_tickers_br_EUA = list(set(ibov_tickers + sp500 + nasdaq)) 
 
 sample = ['GOGL34.SA', 'GOOGL', 'GOOG', 'PETR3.SA', 'PETR4.SA']
-test_m = []
+test_m = ['CMPX', 'CMPOW', 'BRLSW', 'ACAD', 'ABOS', 'ABVEW']
 
 br_tickers = list(set(ibov_tickers + bdrs_tickers))
 
@@ -251,7 +251,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
 # RUN PIPELINE
 # --------------------------
 for period_name, interval, window, minimum in configs:
-    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window, minimum)
+    df_final = download_or_update(period_name, "test_m", test_m, interval, window, minimum)
 
 # delete old data
 # 
