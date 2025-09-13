@@ -16,7 +16,7 @@ void run_aggregation(int num_series, double *result_dtw, TickerSeries *series, i
 
     int *labels = malloc(sizeof(int) * num_series);
 
-    int k = 50;
+    int k = 10;
     switch (aggregation_type) {
         case 1: {
             printf("Running K-Medoids aggregation (k = %d).\n", k);

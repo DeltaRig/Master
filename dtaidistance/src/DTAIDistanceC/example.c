@@ -34,8 +34,7 @@ bool save_result(int n, double *result, TickerSeries *series_list){
     return 0;
 }
 
-
-
+// function to run the dtw algorithm from dtaidistance
 void example(TickerSeries *series, int num_series, int aggregation_type) {
     double *s[num_series];
     idx_t lengths[num_series];
