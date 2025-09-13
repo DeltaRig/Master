@@ -2,8 +2,8 @@ import sys
 import time
 import pandas as pd
 from itertools import combinations
-from fastdtw import fastdtw
-from scipy.spatial.distance import euclidean
+from dtaidistance import dtw
+import numpy as np
 
 # Ensure correct arguments
 if len(sys.argv) < 3:
@@ -25,8 +25,8 @@ except Exception as e:
     sys.exit(1)
 
 # Ensure correct columns
-if "Ticker" not in df.columns or "Adj Close" not in df.columns:
-    print("CSV must contain 'Ticker' and 'Adj Close' columns")
+if "Ticker" not in df.columns or "Adj Close" not in df.columns or "Date" not in df.columns:
+    print("CSV must contain 'Date', 'Ticker' and 'Adj Close' columns")
     sys.exit(1)
 
 # Get all unique tickers
@@ -38,31 +38,30 @@ assets = all_assets[:min(num_assets, len(all_assets))]
 # Store adjusted close price series for each asset
 series_dict = {}
 for asset in assets:
-    series = df[df["Ticker"] == asset].sort_values("Date")["Adj Close"].tolist()
-    series_dict[asset] = series
+    series = df[df["Ticker"] == asset].sort_values("Date")["Adj Close"].astype(float).tolist()
+    series_dict[asset] = np.array(series, dtype=float)
 
 print(f"Computing DTW distances for {len(assets)} assets...")
-print(series_dict.keys())
-import numpy as np
-
-import numpy as np
 
 # Compute DTW distances
 results = []
 for a1, a2 in combinations(assets, 2):
-    # Wrap each value as a list, so it's treated as 1-D
-    x = np.array([[v] for v in series_dict[a1]], dtype=float)
-    y = np.array([[v] for v in series_dict[a2]], dtype=float)
+    x = series_dict[a1]
+    y = series_dict[a2]
 
-    distance, _ = fastdtw(x, y, dist=euclidean)
-    results.append((a1, a2, distance))
-
-
+    # dtaidistance fast DTW
+    distance = dtw.distance_fast(x, y)  
+    results.append((a1, a2, distance, min(len(x), len(y))))
 
 # Save results to CSV (semicolon separated)
 with open("dtw_result_py.csv", "w") as f:
-    for a1, a2, dist in results:
+    for a1, a2, dist, _ in results:
         f.write(f"{a1}; {a2}; {dist:.6f};\n")
+
+# Save normalized results to CSV (by min length of series)
+with open("dtw_result_norm_py.csv", "w") as f:
+    for a1, a2, dist, path_len in results:
+        f.write(f"{a1}; {a2}; {dist/path_len:.6f};\n")
 
 # End timer
 end_time = time.time()
