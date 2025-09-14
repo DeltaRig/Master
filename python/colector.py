@@ -196,20 +196,14 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
         for t in tickers:
             if t not in data.columns.levels[0]:
                 continue
-            if len(data[t]) >= minimum_rows:   # ✅ enforce minimum
-                df_t = data[t].reset_index()
-                df_t['Ticker'] = t
-                records.append(df_t)
-        if not records:   # in case no ticker passes the filter
-            print(f"⚠️ No tickers with >= {minimum_rows} rows for {filename}")
-            return df
+            df_t = data[t].reset_index()
+            if len(df_t) < minimum_rows:
+                print(f"⚠️ Skipping {t}: only {len(df_t)} rows (< {minimum_rows})")
+                continue
+            df_t['Ticker'] = t
+            records.append(df_t)
+                
         new_data = pd.concat(records)
-    else:
-        if len(data) < minimum_rows:   # ✅ enforce minimum also for single ticker
-            print(f"⚠️ Skipping {tickers[0]} (only {len(data)} rows, need >= {minimum_rows})")
-            return df
-        new_data = data.reset_index()
-        new_data['Ticker'] = tickers[0]
 
 
     # Rename date columns consistently
