@@ -73,6 +73,13 @@ gcc -o example example.c \
     -I./DTAIDistanceC/
 ```
 
+original:
+ gcc -o example_original example_original.c \
+          DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c \
+          DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
+          -Wall -g -fopenmp -lm \
+          -I./DTAIDistanceC/
+
 ### 🚀 Execution
 
 > OMP_NUM_THREADS=8 ./example <csv_path> <series_quantity> <aggregation_flag>
