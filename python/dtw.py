@@ -38,7 +38,7 @@ assets = all_assets[:min(num_assets, len(all_assets))]
 # Store adjusted close price series for each asset
 series_dict = {}
 for asset in assets:
-    series = df[df["Ticker"] == asset].sort_values("Date")["Adj Close"].astype(float).tolist()
+    series = df[df["Ticker"] == asset].sort_values("Date")["Close"].astype(float).tolist()
     series_dict[asset] = np.array(series, dtype=float)
 
 print(f"Computing DTW distances for {len(assets)} assets...")
