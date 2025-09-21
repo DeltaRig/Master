@@ -98,8 +98,6 @@ if fig_candle:
 st.subheader(f"DTW Similarity for {ticker}")
 
 subset = df_dtw[(df_dtw["Ticker2"] == ticker) | (df_dtw["Ticker1"] == ticker)].copy()
-print(subset)
-print(df_dtw["Ticker1"] )
 subset["Other"] = subset.apply(
     lambda r: r["Ticker2"] if r["Ticker1"] == ticker else r["Ticker1"],
     axis=1
@@ -112,7 +110,6 @@ most_similar = subset.head(5)
 # explicitly sort descending for least similar
 least_similar = subset.sort_values("Distance", ascending=False).head(5)
 
-print(subset[["Other", "Distance"]])
 col1, col2 = st.columns(2)
 
 with col1:
@@ -123,7 +120,7 @@ with col2:
     st.write("❌ Least similar (highest DTW)")
     st.dataframe(least_similar)
 
-# --- Compare two tickers
+# --- Compare two tickers normalized
 st.subheader("Compare two tickers")
 
 ticker1 = st.selectbox("Ticker 1", tickers, index=0)
@@ -132,6 +129,12 @@ ticker2 = st.selectbox("Ticker 2", tickers, index=1)
 fig_overlay = plot_overlay(df_norm, ticker1, ticker2)
 if fig_overlay:
     st.plotly_chart(fig_overlay, use_container_width=True)
+
+# --- Gráfico de sobreposição (usando dados originais, não normalizados)
+fig_overlay = plot_overlay(df, ticker, ticker2)
+if fig_overlay:
+    st.plotly_chart(fig_overlay, use_container_width=True)
+
 
 # Show DTW value if available
 dist_val = df_dtw[((df_dtw["Ticker1"] == ticker1) & (df_dtw["Ticker2"] == ticker2)) |
