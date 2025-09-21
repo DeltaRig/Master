@@ -15,9 +15,9 @@
 #include <stdio.h>
 
 // n is the number of time series
-bool save_result(int n, double *result, TickerSeries *series_list){
+bool save_result(int n, double *result, TickerSeries *series_list, const char *filename) {
     FILE *fptr;
-    fptr = fopen("dtw_result.csv", "w");
+    fptr = fopen(filename, "w");
     if (fptr == NULL) {
         printf("Error opening file!\n");
         return 1; // Indicate an error
@@ -35,7 +35,7 @@ bool save_result(int n, double *result, TickerSeries *series_list){
 }
 
 // function to run the dtw algorithm from dtaidistance
-void example(TickerSeries *series, int num_series, int aggregation_type) {
+void example(TickerSeries *series, int num_series, int aggregation_type, const char *file_result_destination) {
     double *s[num_series];
     idx_t lengths[num_series];
 
@@ -73,7 +73,7 @@ void example(TickerSeries *series, int num_series, int aggregation_type) {
         run_aggregation(num_series, result, series, aggregation_type, true); // 👈 use result from memory
     }
 
-    save_result(num_series, result, series);
+    save_result(num_series, result, series, file_result_destination);
     printf("Result saved\n");
 
     free(result);
@@ -81,17 +81,18 @@ void example(TickerSeries *series, int num_series, int aggregation_type) {
 
 int main(int argc, const char *argv[]) {
     if (argc < 4) {
-        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <aggregation_type> [--reuse]\n", argv[0]);
+        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <aggregation_type> <file_result_destination> [--reuse]\n", argv[0]);
         return 1;
     }
 
     // to jump to aggregation directly when we already have the result
-    bool reuse = (argc >= 5 && strcmp(argv[4], "--reuse") == 0);
+    bool reuse = (argc >= 6 && strcmp(argv[5], "--reuse") == 0);
 
 
     const char *file_path = argv[1];
     int max_assets = atoi(argv[2]);
     int aggregation = atoi(argv[3]);
+    const char *result_file = argv[4];
 
     printf("Max OpenMP threads = %d\n", omp_get_max_threads());
 
@@ -129,7 +130,7 @@ int main(int argc, const char *argv[]) {
         run_aggregation(num_series, result, series, aggregation, false);  // result not computed yet
         free(result);
     } else {
-        example(series, num_series, aggregation);
+        example(series, num_series, aggregation, result_file);
     }
 
 
