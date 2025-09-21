@@ -26,16 +26,9 @@ def load_data(filename):
 @st.cache_data
 def load_dtw(filename):
     path = os.path.join(DTW_DIR, filename)
-    return pd.read_csv(path, sep=";", names=["Ticker1", "Ticker2", "Distance"])
-'''
-When you use return pd.read_csv(path, sep=";", names=["Ticker1", "Ticker2", "Distance"])
-         Ticker1   Ticker2  Distance
-ABOS        ACAD  3.961624       NaN
-ABOS        CMPX  5.828242       NaN
-ABOS   GOGL34.SA  6.726583       NaN
-ABOS        GOOG  5.953081       NaN
-ABOS       GOOGL  5.950151       NaN
-'''
+    df = pd.read_csv(path, sep=";", names=["Ticker1", "Ticker2", "Distance", ""], header=None)
+    df["Ticker2"] = df["Ticker2"].str.strip()
+    return df
 
 def plot_candlestick(df, ticker, title=""):
     df_t = df[df["Ticker"] == ticker].copy()
@@ -104,19 +97,31 @@ if fig_candle:
 # --- Similarity ranking
 st.subheader(f"DTW Similarity for {ticker}")
 
-subset = df_dtw[(df_dtw["Ticker1"] == ticker) | (df_dtw["Ticker2"] == ticker)].copy()
-subset["Other"] = subset.apply(lambda r: r["Ticker2"] if r["Ticker1"] == ticker else r["Ticker1"], axis=1)
+subset = df_dtw[(df_dtw["Ticker2"] == ticker) | (df_dtw["Ticker1"] == ticker)].copy()
+print(subset)
+print(df_dtw["Ticker1"] )
+subset["Other"] = subset.apply(
+    lambda r: r["Ticker2"] if r["Ticker1"] == ticker else r["Ticker1"],
+    axis=1
+)
 subset = subset[["Other", "Distance"]].sort_values("Distance")
 
+# already sorted ascending
+most_similar = subset.head(5)
+
+# explicitly sort descending for least similar
+least_similar = subset.sort_values("Distance", ascending=False).head(5)
+
+print(subset[["Other", "Distance"]])
 col1, col2 = st.columns(2)
 
 with col1:
     st.write("✅ Most similar (lowest DTW)")
-    st.dataframe(subset.head(5))
+    st.dataframe(most_similar)
 
 with col2:
     st.write("❌ Least similar (highest DTW)")
-    st.dataframe(subset.tail(5))
+    st.dataframe(least_similar)
 
 # --- Compare two tickers
 st.subheader("Compare two tickers")
