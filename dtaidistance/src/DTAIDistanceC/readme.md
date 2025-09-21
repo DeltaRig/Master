@@ -29,12 +29,6 @@ Citing this work: [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo
 
 # Add in Master Degree's Daniela Project
 
-## 🎯 Project Goals
-
-- Test the efficiency of DTW using varying numbers of threads (OpenMP).
-- Compare runtime and performance with and without **data aggregation**.
-- Validate and process **stock price data from CSV files**.
-
 ## 📁 Directory Structure
 ```
 project-root/
@@ -82,13 +76,15 @@ original:
 
 ### 🚀 Execution
 
-> OMP_NUM_THREADS=8 ./example <csv_path> <series_quantity> <aggregation_flag>
+> OMP_NUM_THREADS=8 ./example <csv_path> <series_quantity> <aggregation_flag> <file_result_destination>  [--reuse]
 
 - <csv_path>: Path to your stock dataset CSV file
 - <series_quantity>: Number of time series to process
 - <aggregation_flag>:
 - - 0: Run without aggregation
 - - the option of aggregation
+- <file_result_destination>: To define file name generate with result
+- [--reuse] optional to can go direct to aggregation
 
 
 ### 🧪 Example:
@@ -107,7 +103,6 @@ Experiment with different thread counts to analyze performance:
 | 24      | 24, 48              |
 
 With 100, 200, 400 and 800 tickers
-
 
 
 dpkg -L libomp-dev
