@@ -11,8 +11,8 @@ configs = [
     # stock market need be open
     ("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
     #("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
-    #("7days", "1h", timedelta(days=7), 5*7-(5*7*0.1)),  # 5 hours * 7 days - 10% buffer
-    #("24hours", "1m", timedelta(days=1), 1440-(1440*0.1))  # 1440 minutes in a day - 10% buffer
+    ("7days", "1h", timedelta(days=7), 5*7-(5*7*0.1)),  # 5 hours * 7 days - 10% buffer
+    ("24hours", "1m", timedelta(days=1), 1440-(1440*0.1))  # 1440 minutes in a day - 10% buffer
 ]
 
 # ============================================
@@ -191,37 +191,49 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
         return df
 
     # Flatten if multiple tickers
+    records = []
     if len(tickers) > 1:
-        records = []
         for t in tickers:
             if t not in data.columns.levels[0]:
                 continue
-            df_t = data[t].reset_index()
+            df_t = data[t].reset_index()  # ✅ always bring index as column
+            df_t.rename(columns={"Date": "DateTime", "Datetime": "DateTime"}, inplace=True)
+
+            if "DateTime" not in df_t.columns:
+                df_t["DateTime"] = df_t.index
+
             if len(df_t) < minimum_rows:
                 print(f"⚠️ Skipping {t}: only {len(df_t)} rows (< {minimum_rows})")
                 continue
-            df_t['Ticker'] = t
+
+            df_t["DateTime"] = pd.to_datetime(df_t["DateTime"], utc=True)
+            df_t["Ticker"] = t
             records.append(df_t)
-                
+        if not records:
+            print(f"⚠️ No tickers passed minimum row filter for {filename}")
+            return df
         new_data = pd.concat(records)
+    else:
+        new_data = data.reset_index()
+        new_data.rename(columns={"Date": "DateTime", "Datetime": "DateTime"}, inplace=True)
 
+        if "DateTime" not in new_data.columns:
+            new_data["DateTime"] = new_data.index
 
-    # Rename date columns consistently
-    if "Date" in new_data.columns:
-        new_data = new_data.rename(columns={"Date": "DateTime"})
-    elif "Datetime" in new_data.columns:
-        new_data = new_data.rename(columns={"Datetime": "DateTime"})
+        if len(new_data) < minimum_rows:
+            print(f"⚠️ Skipping {tickers[0]} (only {len(new_data)} rows, need >= {minimum_rows})")
+            return df
 
-    # Now this is always safe:
-    new_data["DateTime"] = pd.to_datetime(new_data["DateTime"], utc=True)
-    
+        new_data["DateTime"] = pd.to_datetime(new_data["DateTime"], utc=True)
+        new_data["Ticker"] = tickers[0]
+
     # Drop rows with missing OHLC
     new_data = new_data.dropna(subset=["Open", "High", "Low", "Close"], how="all")
 
     # Merge with existing
     df = pd.concat([df, new_data], ignore_index=True)
 
-    # Drop duplicates
+    # Drop duplicates & sort
     df = df.drop_duplicates(subset=["DateTime", "Ticker"]).sort_values(["DateTime", "Ticker"])
 
     # Keep only rolling window
@@ -232,6 +244,12 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
     df["Date"] = df["DateTime"].dt.date
     if interval in ["1h", "1m"]:
         df["Time"] = df["DateTime"].dt.time
+
+    # Reorder columns
+    cols = ["DateTime", "Open", "High", "Low", "Close", "Adj Close", "Volume", "Ticker"]
+    if "Time" in df.columns:
+        cols.append("Time")
+    df = df[cols]
 
     # Save
     df.to_csv(f"data/{filename}", index=False)
