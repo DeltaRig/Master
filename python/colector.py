@@ -8,12 +8,13 @@ from datetime import datetime, timedelta, timezone
 # CONFIG
 # --------------------------
 configs = [
+    # period_name, interval, window, minimum 
     # stock market need be open
-    ("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
+    #("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
     #("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
-    ("7days", "60m", timedelta(days=7), 1),  # 5 hours * 7 days - 10% buffer
-    ("7days", "1h", timedelta(days=7), 1),  
-    ("24hours", "1m", timedelta(days=1), (1440*0.1))  # 1440 minutes in a day - 10% buffer
+    ("7days", "60m", "7d", 1),  # 5 hours * 7 days - 10% buffer
+    ("7days", "1h", "7d", 1),
+    ("24hours", "1m", "1d", (1440*0.1))  # 1440 minutes in a day - 10% buffer
 ]
 
 # ============================================
@@ -130,7 +131,7 @@ def save_with_info(df, filename,log_file="data_summary.log"):
     # Write header if file doesn’t exist
     if not os.path.exists(log_file):
         with open(log_file, "w") as f:
-            f.write("sysdate,tag,filename,n_rows,n_tickers\n")
+            f.write("\nsysdate,tag,filename,n_rows,n_tickers\n")
 
     # Append log line
     with open(log_file, "a") as f:
@@ -168,24 +169,47 @@ def normalize_prices(df, filename):
 def download_or_update(period_name, list_name, tickers, interval, keep_window, minimum_rows):
     filename = build_filename(period_name, list_name, interval)
 
-    if os.path.exists(filename):
-        df = pd.read_csv(filename, parse_dates=["DateTime"])
-        last_date = df["DateTime"].max()
-        start = last_date + pd.Timedelta(seconds=1)
-        print(f"🔄 Updating {filename} from {start}...")
-    else:
+    # --- Case 1: short periods (not yearly) → always refresh with `period`
+    if "year" not in period_name.lower():
+        print(f"⬇️ Fresh download for {filename} using period={period_name}, interval={interval}")
+
+        data = yf.download(
+            tickers,
+            period=window,          # <-- use period string here
+            interval=interval,
+            group_by="ticker",
+            auto_adjust=False,
+            threads=True
+        )
+
+        # Remove old file if it exists
+        if os.path.exists(f"data/{filename}"):
+            os.remove(f"data/{filename}")
+
         df = pd.DataFrame()
-        start = datetime.now(timezone.utc) - keep_window
-        print(f"⬇️ Creating {filename} from scratch, starting {start}...")
 
-    end = datetime.now(timezone.utc)
+    # --- Case 2: yearly or longer → incremental update with start/end
+    else:
+        if os.path.exists(f"data/{filename}"):
+            df = pd.read_csv(f"data/{filename}", parse_dates=["DateTime"])
+            last_date = df["DateTime"].max()
+            start = last_date + pd.Timedelta(seconds=1)
+            print(f"🔄 Updating {filename} from {start}...")
+        else:
+            df = pd.DataFrame()
+            start = datetime.now(timezone.utc) - keep_window
+            print(f"⬇️ Creating {filename} from scratch, starting {start}...")
 
-    # Download from yfinance
-    data = yf.download(
-        tickers, start=start, end=end,
-        interval=interval, group_by="ticker",
-        auto_adjust=False, threads=True
-    )
+        end = datetime.now(timezone.utc)
+
+        data = yf.download(
+            tickers,
+            start=start, end=end,
+            interval=interval,
+            group_by="ticker",
+            auto_adjust=False,
+            threads=True
+        )
 
     if data.empty:
         print(f"⚠️ No new data for {filename}")
@@ -238,12 +262,13 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
     df = df.drop_duplicates(subset=["DateTime", "Ticker"]).sort_values(["DateTime", "Ticker"])
 
     # Keep only rolling window
-    cutoff = datetime.now(timezone.utc) - keep_window
-    df = df[df["DateTime"] >= cutoff]
+    if "year" in period_name.lower():
+        cutoff = datetime.now(timezone.utc) - keep_window
+        df = df[df["DateTime"] >= cutoff]
 
     # Add Date + Time split (but keep DateTime too)
     df["Date"] = df["DateTime"].dt.date
-    if interval in ["1h", "1m"]:
+    if interval in ["1h", "1m", "60m"]:
         df["Time"] = df["DateTime"].dt.time
 
     # Reorder columns
