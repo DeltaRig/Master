@@ -11,8 +11,9 @@ configs = [
     # stock market need be open
     ("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
     #("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
-    ("7days", "1h", timedelta(days=7), 5*7-(5*7*0.1)),  # 5 hours * 7 days - 10% buffer
-    ("24hours", "1m", timedelta(days=1), 1440-(1440*0.1))  # 1440 minutes in a day - 10% buffer
+    ("7days", "60m", timedelta(days=7), 1),  # 5 hours * 7 days - 10% buffer
+    ("7days", "1h", timedelta(days=7), 1),  
+    ("24hours", "1m", timedelta(days=1), (1440*0.1))  # 1440 minutes in a day - 10% buffer
 ]
 
 # ============================================
@@ -97,7 +98,7 @@ nasdaq = [line.strip().split(',')[0] for line in lines if line.strip()]
 master_tickers_br_EUA = list(set(ibov_tickers + sp500 + nasdaq)) 
 
 sample = ['GOGL34.SA', 'GOOGL', 'GOOG', 'PETR3.SA', 'PETR4.SA']
-test_m = ['CMPX', 'CMPOW', 'BRLSW', 'ACAD', 'ABOS', 'ABVEW']
+test_m = ['CMPX', 'CMPOW', 'BRLSW', 'ACAD', 'ABOS', 'ABVEW', 'GOGL34.SA', 'GOOGL', 'GOOG', 'PETR3.SA', 'PETR4.SA']
 
 br_tickers = list(set(ibov_tickers + bdrs_tickers))
 
@@ -263,7 +264,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
 # RUN PIPELINE
 # --------------------------
 for period_name, interval, window, minimum in configs:
-    df_final = download_or_update(period_name, "test_m", test_m, interval, window, minimum)
+    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window, minimum)
 
 # delete old data
 # 
