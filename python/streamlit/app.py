@@ -175,13 +175,6 @@ if fig_overlay:
 
 
 # Show DTW value if available for selected period
-dist_val = df_dtw[((df_dtw["Ticker1"] == ticker1) & (df_dtw["Ticker2"] == ticker2)) |
-                  ((df_dtw["Ticker1"] == ticker2) & (df_dtw["Ticker2"] == ticker1))]
-if not dist_val.empty:
-    st.success(f"DTW distance between **{ticker1}** and **{ticker2}**: {dist_val['Distance'].values[0]:.4f}")
-else:
-    st.warning("No DTW distance available for this pair.")
-
 dtw_rows = []
 for label, file in PERIODS.items():
     df_dtw_period = load_dtw(file)
