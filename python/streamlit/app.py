@@ -77,16 +77,38 @@ def plot_overlay(df, ticker1, ticker2):
 st.set_page_config(page_title="📊 Asset Similarity Explorer", layout="wide")
 st.title("📊 Asset Similarity Explorer (DTW-based)")
 
-# --- Select period
-period_label = st.selectbox("Select period", list(PERIODS.keys()))
-filename = PERIODS[period_label]
+# --- Select ticker first, then period ---
+if "ticker" not in st.session_state:
+    st.session_state.ticker = None
 
+# Load all tickers from all periods for initial selection
+all_tickers = set()
+for file in PERIODS.values():
+    df_tmp = load_data(os.path.join(DATA_DIR, file))
+    all_tickers.update(df_tmp["Ticker"].unique())
+all_tickers = sorted(all_tickers)
+
+ticker = st.selectbox(
+    "Choose a ticker", all_tickers,
+    index=all_tickers.index(st.session_state.ticker) if st.session_state.ticker in all_tickers else 0,
+    key="ticker"
+)
+
+period_label = st.selectbox("Select period", list(PERIODS.keys()))
+
+filename = PERIODS[period_label]
 df = load_data(os.path.join(DATA_DIR, filename))
+tickers = sorted(df["Ticker"].unique())
+
+# If the selected ticker is not in the current period, show warning and stop
+if ticker not in tickers:
+    st.warning(f"No information for ticker **{ticker}** in period **{period_label}**.")
+    st.stop()
+
+# Load data
 df_norm = load_data(os.path.join(NORM_DIR, filename))
 df_dtw = load_dtw(filename)
 
-tickers = sorted(df["Ticker"].unique())
-ticker = st.selectbox("Choose a ticker", tickers)
 
 # --- Candlestick
 st.subheader(f"Candlestick chart: {ticker}")
@@ -150,4 +172,29 @@ if fig_overlay:
 fig_overlay = plot_overlay(df, ticker, ticker2)
 if fig_overlay:
     st.plotly_chart(fig_overlay, use_container_width=True)
+
+
+# Show DTW value if available for selected period
+dist_val = df_dtw[((df_dtw["Ticker1"] == ticker1) & (df_dtw["Ticker2"] == ticker2)) |
+                  ((df_dtw["Ticker1"] == ticker2) & (df_dtw["Ticker2"] == ticker1))]
+if not dist_val.empty:
+    st.success(f"DTW distance between **{ticker1}** and **{ticker2}**: {dist_val['Distance'].values[0]:.4f}")
+else:
+    st.warning("No DTW distance available for this pair.")
+
+dtw_rows = []
+for label, file in PERIODS.items():
+    df_dtw_period = load_dtw(file)
+    dist_val_period = df_dtw_period[
+        ((df_dtw_period["Ticker1"] == ticker1) & (df_dtw_period["Ticker2"] == ticker2)) |
+        ((df_dtw_period["Ticker1"] == ticker2) & (df_dtw_period["Ticker2"] == ticker1))
+    ]
+    if not dist_val_period.empty:
+        dtw_rows.append({"Period": label, f"DTW Distance {ticker1} and {ticker2}": dist_val_period['Distance'].values[0]})
+    else:
+        dtw_rows.append({"Period": label, f"DTW Distance {ticker1} and {ticker2}": "N/A"})
+
+dtw_df = pd.DataFrame(dtw_rows)
+st.markdown("### DTW distance for all periods")
+st.dataframe(dtw_df)
 
