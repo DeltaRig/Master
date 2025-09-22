@@ -94,7 +94,7 @@ fig_candle = plot_candlestick(df, ticker, title=f"{ticker} - {period_label}")
 if fig_candle:
     st.plotly_chart(fig_candle, use_container_width=True)
 
-# --- Similarity ranking
+# --- Similarity ranking with DTW distances for all periods
 st.subheader(f"DTW Similarity for {ticker}")
 
 subset = df_dtw[(df_dtw["Ticker2"] == ticker) | (df_dtw["Ticker1"] == ticker)].copy()
@@ -102,23 +102,39 @@ subset["Other"] = subset.apply(
     lambda r: r["Ticker2"] if r["Ticker1"] == ticker else r["Ticker1"],
     axis=1
 )
-subset = subset[["Other", "Distance"]].sort_values("Distance")
+subset = subset[["Other"]].copy()  # Remove 'Distance' column
 
-# already sorted ascending
-most_similar = subset.head(5)
+# Add DTW distances for all periods with readable column names
+for label, file in PERIODS.items():
+    df_dtw_period = load_dtw(file)
+    subset[label] = subset["Other"].apply(
+        lambda other: df_dtw_period[
+            ((df_dtw_period["Ticker1"] == ticker) & (df_dtw_period["Ticker2"] == other)) |
+            ((df_dtw_period["Ticker1"] == other) & (df_dtw_period["Ticker2"] == ticker))
+        ]["Distance"].values[0] if not df_dtw_period[
+            ((df_dtw_period["Ticker1"] == ticker) & (df_dtw_period["Ticker2"] == other)) |
+            ((df_dtw_period["Ticker1"] == other) & (df_dtw_period["Ticker2"] == ticker))
+        ].empty else None
+    )
 
-# explicitly sort descending for least similar
-least_similar = subset.sort_values("Distance", ascending=False).head(5)
+def highlight_period(data):
+    # Highlights the selected period column
+    return pd.DataFrame(
+        '', index=data.index, columns=data.columns
+    ).assign(**{period_label: 'background-color: #006326'})
+
+most_similar = subset.sort_values(period_label).head(5)
+least_similar = subset.sort_values(period_label, ascending=False).head(5)
 
 col1, col2 = st.columns(2)
 
 with col1:
     st.write("✅ Most similar (lowest DTW)")
-    st.dataframe(most_similar)
+    st.dataframe(most_similar.style.apply(highlight_period, axis=None))
 
 with col2:
     st.write("❌ Least similar (highest DTW)")
-    st.dataframe(least_similar)
+    st.dataframe(least_similar.style.apply(highlight_period, axis=None))
 
 # --- Compare two tickers normalized
 st.subheader("Compare two tickers")
@@ -135,11 +151,3 @@ fig_overlay = plot_overlay(df, ticker, ticker2)
 if fig_overlay:
     st.plotly_chart(fig_overlay, use_container_width=True)
 
-
-# Show DTW value if available
-dist_val = df_dtw[((df_dtw["Ticker1"] == ticker1) & (df_dtw["Ticker2"] == ticker2)) |
-                  ((df_dtw["Ticker1"] == ticker2) & (df_dtw["Ticker2"] == ticker1))]
-if not dist_val.empty:
-    st.success(f"DTW distance between **{ticker1}** and **{ticker2}**: {dist_val['Distance'].values[0]:.4f}")
-else:
-    st.warning("No DTW distance available for this pair.")
