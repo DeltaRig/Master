@@ -10,10 +10,9 @@ from datetime import datetime, timedelta, timezone
 configs = [
     # period_name, interval, window, minimum 
     # stock market need be open
-    #("2years", "1d", timedelta(days=365*2), 245*2-(245*2*0.1)),  # 245 days * 2 years - 10% buffer
-    #("6months", "1d", timedelta(days=30*6), 22*6-(22*6*0.4)),  # 22 days * 6 months - 40% buffer
-    ("7days", "60m", "7d", 1),  # 5 hours * 7 days - 10% buffer
-    ("7days", "1h", "7d", 1),
+    ("2years", "1d", timedelta(days=365*2), 1),  # 245 days * 2 years - 10% buffer
+    ("6months", "4h", "6mo", 60),  # 22 days * 6 months - 40% buffer
+    ("7days", "60m", "1wk", 1),
     ("24hours", "1m", "1d", (1440*0.1))  # 1440 minutes in a day - 10% buffer
 ]
 
@@ -289,7 +288,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
 # RUN PIPELINE
 # --------------------------
 for period_name, interval, window, minimum in configs:
-    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window, minimum)
+    df_final = download_or_update(period_name, "test_m", test_m, interval, window, minimum)
 
 # delete old data
 # 
