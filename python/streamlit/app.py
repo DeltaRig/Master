@@ -12,7 +12,8 @@ DTW_DIR = "../dtw"
 
 PERIODS = {
     "2 years (1d)": "test_m_2years_1d.csv",
-    "7 days (1h)": "test_m_7days_1h.csv",
+    "6 months (4h)": "test_m_6months_4h.csv",
+    "7 days (60m)": "test_m_7days_60m.csv",
     "24 hours (1m)": "test_m_24hours_1m.csv"
 }
 
