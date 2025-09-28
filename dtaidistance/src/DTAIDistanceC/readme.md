@@ -58,25 +58,36 @@ sudo apt install libomp-dev
 
 ### 🔧 Compilation Instructions
 Use the following gcc command to compile the full application, including CSV parsing and aggregation:
+
+
+original:
+ gcc -o example_original example_original.c \
+          DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c DTAIDistanceC/dd_dtw_mpi.c \
+          DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
+          -Wall -g -fopenmp -lm \
+          -I./DTAIDistanceC/
+
 ```
 gcc -o example example.c \
     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c \
-    DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c \
+    DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c DTAIDistanceC/dd_dtw_mpi.c \
     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
     -Wall -g -fopenmp -lm \
     -I./DTAIDistanceC/
 ```
 
-original:
- gcc -o example_original example_original.c \
-          DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c \
-          DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
-          -Wall -g -fopenmp -lm \
-          -I./DTAIDistanceC/
+After MPI
+mpicc -o example example.c     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c \
+    DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c DTAIDistanceC/dd_dtw_mpi.c \
+    DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
+    -Wall -g -fopenmp -lm \
+    -I./DTAIDistanceC/
+
+
 
 ### 🚀 Execution
 
-> OMP_NUM_THREADS=8 ./example <csv_path> <series_quantity> <aggregation_flag> <file_result_destination>  [--reuse]
+> OMP_NUM_THREADS=8 ./example <csv_path> <series_quantity> <parallel_type> <aggregation_flag> <file_result_destination>  [--reuse]
 
 - <csv_path>: Path to your stock dataset CSV file
 - <series_quantity>: Number of time series to process
@@ -89,6 +100,9 @@ original:
 
 ### 🧪 Example:
 > OMP_NUM_THREADS=4 ./example dados/master_tickers.csv 24 1
+
+> mpirun -np 4 example /home/dani/Documents/git/Master/python/normalized/test_m_2years_1d.csv 6 1 0 t
+est_m_2years_1d_mpi.csv
 
 This runs the program on 24 series from master_tickers.csv using aggregation and 4 threads.
 

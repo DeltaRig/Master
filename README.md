@@ -37,9 +37,39 @@ In windowns:
 
 # C Project
 
+Example is on dtaidistance/src/DTAIDistanceC that run DTW direct in C. I
 
+## MPI how to run (Linux)
 
+mpicc to compile
 
+mpirun -np 2 to execute
+
+## MPI how to run (Windows)
+Download MPI Runtime.exe and SDK.msi
+https://www.microsoft.com/en-us/download/details.aspx?id=105289
+
+Install C/C++ extension (VS Code)
+
+GCC compiler command: gcc ms_v2.c -o ms_v2.exe  -I"C:\Program Files (x86)\Microsoft SDKs\MPI\Include"  -L"C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64" -lmsmpi
+
+MPI run command: mpiexec -n 4 .\ms_v2.exe
+
+Common options:
+
+-n <num_processes>
+-env <env_var_name> <env_var_value>
+-wdir <working_directory>
+-hosts n host1 [m1] host2 [m2] ... hostn [mn]
+-cores <num_cores_per_host>
+-lines
+-debug [0-3]
+-logfile <log file>
+
+Examples:
+
+    mpiexec -n 4 pi.exe
+    mpiexec -hosts 1 server1 master : -n 8 worker
 
 # Dataset
 Yahoo Finance
