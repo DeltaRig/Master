@@ -164,7 +164,6 @@ def normalize_prices(df, filename):
     save_with_info(df_norm, f"normalized/{filename}")
 
 
-
 def download_or_update(period_name, list_name, tickers, interval, keep_window, minimum_rows):
     filename = build_filename(period_name, list_name, interval)
 
@@ -202,7 +201,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
         end = datetime.now(timezone.utc)
 
         data = yf.download(
-            tickers,
+            tickers, # GOOGL, GOOG, 
             start=start, end=end,
             interval=interval,
             group_by="ticker",
@@ -216,7 +215,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
 
     # Flatten if multiple tickers
     records = []
-    if len(tickers) > 1:
+    if len(tickers) > 1: # 
         for t in tickers:
             if t not in data.columns.levels[0]:
                 continue
@@ -226,33 +225,26 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
             if "DateTime" not in df_t.columns:
                 df_t["DateTime"] = df_t.index
 
+            df_t["DateTime"] = pd.to_datetime(df_t["DateTime"], utc=True)
+            df_t["Ticker"] = t
+
+            # Drop rows with missing OHLC
+            df_t = df_t.dropna(subset=["Open", "High", "Low", "Close"], how="all")
+
+            print("ticker",  len(df_t))
             if len(df_t) < minimum_rows:
                 print(f"⚠️ Skipping {t}: only {len(df_t)} rows (< {minimum_rows})")
                 continue
 
-            df_t["DateTime"] = pd.to_datetime(df_t["DateTime"], utc=True)
-            df_t["Ticker"] = t
             records.append(df_t)
         if not records:
             print(f"⚠️ No tickers passed minimum row filter for {filename}")
             return df
+        
         new_data = pd.concat(records)
-    else:
-        new_data = data.reset_index()
-        new_data.rename(columns={"Date": "DateTime", "Datetime": "DateTime"}, inplace=True)
+    
 
-        if "DateTime" not in new_data.columns:
-            new_data["DateTime"] = new_data.index
-
-        if len(new_data) < minimum_rows:
-            print(f"⚠️ Skipping {tickers[0]} (only {len(new_data)} rows, need >= {minimum_rows})")
-            return df
-
-        new_data["DateTime"] = pd.to_datetime(new_data["DateTime"], utc=True)
-        new_data["Ticker"] = tickers[0]
-
-    # Drop rows with missing OHLC
-    new_data = new_data.dropna(subset=["Open", "High", "Low", "Close"], how="all")
+    
 
     # Merge with existing
     df = pd.concat([df, new_data], ignore_index=True)
