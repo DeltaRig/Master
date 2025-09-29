@@ -46,7 +46,7 @@ After all tasks are done, master sends a “KILL” tag so slaves can exit grace
 #define KILLTAG 2
 #define RESULTTAG 3
 
-#define VERBOSE 1    // 1 for progress messages, 0 for none
+#define VERBOSE 0    // 1 for progress messages, 0 for none
 
 int dtw_distances_prepare_MS(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
     idx_t cb, rs, ir;
@@ -120,13 +120,12 @@ settings - DTWSettings with parameters for DTW computation
 idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
                           seq_t* output, DTWBlock* block, DTWSettings* settings) {
 
-    int i,j;
+    int i;
     int my_rank;     	       // process id
     int proc_n;                // number of processes (np at command line)
     int kill_msg;              // number of sended killl messages to slaves (initialized with np-1 slaves)
     int next_task;             // next task to be processed in bag
     MPI_Status status;         // MPI_RECV/PROBE struct with return status
-    int bag_position[128];     // store wich process (index) is processing wich task - max np = 128
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    // get process id (rank)
     MPI_Comm_size(MPI_COMM_WORLD, &proc_n);     // get number of active processes
 
@@ -154,8 +153,8 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
      - s1 s3
      - s2 s3
         */
-        // CALCULO ERRADO
-        int num_tasks = nb_ptrs * nb_ptrs - nb_ptrs; // total number of (r,c) pairs excluding (r,r)
+        
+        int num_tasks = (nb_ptrs * nb_ptrs - nb_ptrs)/2; // total number of (r,c) pairs excluding (r,r)
         printf("\nMaster[%d]: bag with %d tasks of size %ld.", my_rank, num_tasks, lengths[0]);
         fflush(stdout);
 
@@ -175,7 +174,6 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
             }
         }
         // send first round of work to the slaves
-        int active = 0;
         next_task = 0;
         // adicionar verificaçao se o numero de processos é maior que o numero de tasks
         for ( i = 1 ; i < proc_n ; i++ )  // begin with first slave (process 1, since master is 0)
@@ -207,18 +205,18 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
             #endif
 
             // Store result in output
-            int src = status.MPI_SOURCE;
             r = (idx_t) result[0];
             c = (idx_t) result[1];
 
             // Same indexing as OpenMP version
             if (block->triu) {
-                int r_i = r - block->rb;
-                int c_i = c - cbs[r_i];
+                r_i = r - block->rb;
+                c_i = c - cbs[r_i];
+                //printf("\nStoring at position %ld (r_i=%d, c_i=%d, r=%ld, c=%ld, cb=%ld) value %f", rls[r_i] + c_i, r_i, c_i, r, c, cbs[r_i], result[2]);
                 output[rls[r_i] + c_i] = result[2];
             } else {
-                int r_i = r - block->rb;
-                int c_i = c - block->cb;
+                r_i = r - block->rb;
+                c_i = c - block->cb;
                 output[(block->ce - block->cb) * r_i + c_i] = result[2];
             }
 
@@ -243,6 +241,9 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
                 #endif
             }
         }
+
+        free(tasks);
+
     } else {
         // I am the slave!
         int task_counter = 0;
@@ -258,7 +259,8 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
                     printf("\nSlave[%d]: kill message revceived from master. Bye bye!\n", my_rank );
                     fflush(stdout);
                 #endif
-                break;
+                exit(EXIT_SUCCESS);
+
                 }
             else if (status.MPI_TAG == WORKTAG)
                 {
