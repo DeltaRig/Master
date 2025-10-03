@@ -259,7 +259,7 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
                     printf("\nSlave[%d]: kill message revceived from master. Bye bye!\n", my_rank );
                     fflush(stdout);
                 #endif
-                exit(EXIT_SUCCESS);
+                return 0;
 
                 }
             else if (status.MPI_TAG == WORKTAG)
@@ -292,5 +292,6 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
         printf("\n\n");
     }
     //MPI_Barrier(MPI_COMM_WORLD); // wait for all processes to reach this point
+    MPI_Finalize();  // finalize MPI environment
     return 1;
 }

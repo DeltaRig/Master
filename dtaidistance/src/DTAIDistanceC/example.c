@@ -73,7 +73,11 @@ void example(TickerSeries *series, int num_series, int aggregation_type, const c
     } else {
         // MPI version
         printf("DTW MPI MS...\n");
-        dtw_distances_ptrs_parallel_MS(s, num_series, lengths, result, &block, &settings);
+        int tag = dtw_distances_ptrs_parallel_MS(s, num_series, lengths, result, &block, &settings);
+        if (tag != 1) {
+            printf("Slave kill\n");
+            return;
+        }   
     }
 
 
