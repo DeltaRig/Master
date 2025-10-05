@@ -16,7 +16,7 @@
 #define KILLTAG 2
 #define RESULTTAG 3
 
-#define VERBOSE 1 
+#define VERBOSE 0
 
 int dtw_distances_prepare(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
     idx_t cb, rs, ir;
@@ -130,38 +130,6 @@ int main(int argc, char *argv[]) {
     idx_t length;
     idx_t *cbs, *rls;
 
-    printf("Loading time series...\n");
-    TickerSeries *series = malloc(sizeof(TickerSeries) * max_assets);
-    if (!series) {
-        fprintf(stderr, "Erro: não foi possível alocar memória para séries\n");
-        return 1;
-    }
-
-    int num_series = 0;
-    if (load_series_from_csv(file_path, series, &num_series, max_assets) != 0) {
-        fprintf(stderr, "Erro ao carregar CSV\n");
-        free(series);
-        return 1;
-    }
-    printf("Loaded %d time series\n", num_series);
-
-    // example code
-    double *s[num_series];
-    idx_t lengths[num_series];
-
-    for (int i = 0; i < num_series; i++) {
-        s[i] = series[i].close;
-        lengths[i] = series[i].count;
-    }
-
-    idx_t result_length = num_series * (num_series - 1) / 2;
-    double *result = malloc(sizeof(double) * result_length);
-    if (!result) {
-        printf("Error: cannot allocate memory for result (size=%zu)\n", result_length);
-        return 1;
-    }
-
-    printf("DTW Settings and run...\n");
     time_t start_t, end_t;
     struct timespec start, end;
     double diff_t, diff_t2;
@@ -169,11 +137,45 @@ int main(int argc, char *argv[]) {
     time(&start_t);
     clock_gettime(CLOCK_REALTIME, &start);
 
-    DTWSettings settings = dtw_settings_default();
-    DTWBlock block = dtw_block_empty();
 
-    // validate if it work
+    DTWSettings settings = dtw_settings_default();
+
     if (my_rank == 0) {
+        printf("Loading time series...\n");
+        TickerSeries *series = malloc(sizeof(TickerSeries) * max_assets);
+        if (!series) {
+            fprintf(stderr, "Erro: não foi possível alocar memória para séries\n");
+            return 1;
+        }
+
+        int num_series = 0;
+        if (load_series_from_csv(file_path, series, &num_series, max_assets) != 0) {
+            fprintf(stderr, "Erro ao carregar CSV\n");
+            free(series);
+            return 1;
+        }
+        printf("Loaded %d time series\n", num_series);
+
+        // example code
+        double *s[num_series];
+        idx_t lengths[num_series];
+
+        for (int i = 0; i < num_series; i++) {
+            s[i] = series[i].close;
+            lengths[i] = series[i].count;
+        }
+
+        idx_t result_length = num_series * (num_series - 1) / 2;
+        double *result = malloc(sizeof(double) * result_length);
+        if (!result) {
+            printf("Error: cannot allocate memory for result (size=%zu)\n", result_length);
+            return 1;
+        }
+
+        printf("DTW Settings and run...\n");
+        DTWBlock block = dtw_block_empty();
+
+    
         if (dtw_distances_prepare_MS(&block, num_series, num_series, &cbs, &rls, &length, &settings) != 0) {
             return 0;
         }
@@ -201,7 +203,18 @@ int main(int argc, char *argv[]) {
         next_task = 0;
         // adicionar verificaçao se o numero de processos é maior que o numero de tasks
         for (i = 1; i < proc_n; i++) {  // begin with first slave (process 1, since master is 0)
+            // Enviar par de índices
             MPI_Send(tasks[next_task], 2, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+
+            // Enviar tamanhos das séries
+            int len_r = lengths[tasks[next_task][0]];
+            int len_c = lengths[tasks[next_task][1]];
+            MPI_Send(&len_r, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+            MPI_Send(&len_c, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+
+            // Enviar os vetores de preços
+            MPI_Send(s[tasks[next_task][0]], len_r, MPI_DOUBLE, i, WORKTAG, MPI_COMM_WORLD);
+            MPI_Send(s[tasks[next_task][1]], len_c, MPI_DOUBLE, i, WORKTAG, MPI_COMM_WORLD);
             next_task++;
             #if VERBOSE
                 printf("\nMaster[%d]: sending new work (task %d) to slave %d with positions [%d,%d].", my_rank, next_task-1, i, tasks[next_task-1][0], tasks[next_task-1][1]);
@@ -243,7 +256,18 @@ int main(int argc, char *argv[]) {
 
             if (next_task < num_tasks) {
                 // still some work to do, send it to the free slave
+                // enviar par de índices
                 MPI_Send(tasks[next_task], 2, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+
+                // Enviar tamanhos das séries
+                int len_r = lengths[tasks[next_task][0]];
+                int len_c = lengths[tasks[next_task][1]];
+                MPI_Send(&len_r, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+                MPI_Send(&len_c, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+
+                // Enviar os vetores de preços
+                MPI_Send(s[tasks[next_task][0]], len_r, MPI_DOUBLE, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+                MPI_Send(s[tasks[next_task][1]], len_c, MPI_DOUBLE, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
                 #if VERBOSE
                     printf("\nMaster[%d]: sending new work (task %d) to slave %d with positions [%d,%d].", my_rank, next_task, status.MPI_SOURCE, tasks[next_task][0], tasks[next_task][1]);
                     fflush(stdout);
@@ -260,6 +284,18 @@ int main(int argc, char *argv[]) {
             }
         }
         free(tasks);
+
+        time(&end_t);
+        clock_gettime(CLOCK_REALTIME, &end);
+        diff_t = difftime(end_t, start_t);
+        diff_t2 = ((double)end.tv_sec * 1e9 + end.tv_nsec) - ((double)start.tv_sec * 1e9 + start.tv_nsec);
+        printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2 / 1000000);
+
+        save_result(num_series, result, series, result_file);
+        printf("Result saved\n");
+        free(result);
+        free(series);
+
     } else {
         // I am the slave!
         int task_counter = 0;
@@ -275,21 +311,34 @@ int main(int argc, char *argv[]) {
                 #endif
                 return 0;
             } else if (status.MPI_TAG == WORKTAG) {
-                // got work to do!
-                r = message[0];
-                c = message[1];
-                double value = dtw_distance(s[r], lengths[r], s[c], lengths[c], &settings);
+                // Receber tamanhos
+                int len_r, len_c;
+                MPI_Recv(&len_r, 1, MPI_INT, 0, WORKTAG, MPI_COMM_WORLD, &status);
+                MPI_Recv(&len_c, 1, MPI_INT, 0, WORKTAG, MPI_COMM_WORLD, &status);
+
+                // Alocar buffers temporários
+                double *series_r = malloc(len_r * sizeof(double));
+                double *series_c = malloc(len_c * sizeof(double));
+
+                // Receber dados das séries
+                MPI_Recv(series_r, len_r, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
+                MPI_Recv(series_c, len_c, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
+
+                double value = dtw_distance(series_r, len_r, series_c, len_c, &settings);
+
+                // Liberar buffers
+                free(series_r);
+                free(series_c);
+
                 // send result back to master
-                double result_send[3];
-                result_send[0] = r;
-                result_send[1] = c;
-                result_send[2] = value;
 
                 #if VERBOSE
                     printf("\nSlave[%d]: task [%d] sending result", my_rank, task_counter);
                     fflush(stdout);
                 #endif
-                MPI_Send(&result_send, 3, MPI_DOUBLE, 0, RESULTTAG, MPI_COMM_WORLD);
+                // Enviar resultado ao mestre
+                double result_send[3] = { (double) message[0], (double) message[1], value };
+                MPI_Send(result_send, 3, MPI_DOUBLE, 0, RESULTTAG, MPI_COMM_WORLD);
                 task_counter++;
             } else {
                 printf("\nSlave[%d]: unknown message tag %d received from master!", my_rank, status.MPI_TAG);
@@ -299,17 +348,11 @@ int main(int argc, char *argv[]) {
         printf("\n\n");
     }
 
-    time(&end_t);
-    clock_gettime(CLOCK_REALTIME, &end);
-    diff_t = difftime(end_t, start_t);
-    diff_t2 = ((double)end.tv_sec * 1e9 + end.tv_nsec) - ((double)start.tv_sec * 1e9 + start.tv_nsec);
-    printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2 / 1000000);
 
-    save_result(num_series, result, series, result_file);
-    printf("Result saved\n");
 
-    free(result);
+
+
+
     MPI_Finalize();
-    free(series);
     return 0;
 }
