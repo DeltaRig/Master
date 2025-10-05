@@ -37,7 +37,14 @@ In windowns:
 
 # C Project
 
-Example is on dtaidistance/src/DTAIDistanceC that run DTW direct in C. I
+Example is on dtaidistance/src/DTAIDistanceC that run DTW direct in C.
+
+**DTW with OpenMP implementation** was developed by Merth.
+
+**DTW with MPI version 1** All process read the file and organize in memory all stocks. Master send the position of the stocks and slaves calculate and respond the value to master organize.
+
+**DTW with MPI version 2** Just master have the information in memory and will send by message the sequence to be calculated. Master is responsible to organize the block of results in momery and return it.
+
 
 ## MPI how to run (Linux)
 

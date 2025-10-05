@@ -83,6 +83,7 @@ mpicc -o example example.c     assets/load_from_csv.c assets/aggregation.c asset
     -Wall -g -fopenmp -lm \
     -I./DTAIDistanceC/
 
+mpicc -o exampleM mainMPI.c     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c     DTAIDistanceC/dd_dtw.c  DTAIDistanceC/dd_dtw_mpi.c     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c     -Wall -g -fopenmp -lm     -I./DTAIDistanceC/
 
 
 ### 🚀 Execution
