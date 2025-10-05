@@ -139,6 +139,7 @@ int main(int argc, char *argv[]) {
 
 
     DTWSettings settings = dtw_settings_default();
+    MPI_Barrier(MPI_COMM_WORLD); // Espera todos chegarem aqui
 
     if (my_rank == 0) {
         printf("Loading time series...\n");
