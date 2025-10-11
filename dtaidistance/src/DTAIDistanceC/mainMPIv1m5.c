@@ -212,22 +212,20 @@ int main(int argc, char *argv[]) {
         }
         // send first round of work to the slaves
         next_task = 0;
-        int (*last_send) = malloc(proc_n * sizeof(int));
         // adicionar verificaçao se o numero de processos é maior que o numero de tasks
         for (i = 1; i < proc_n; i++) {  // begin with first slave (process 1, since master is 0)
             // Enviar par de índices
-            //MPI_Send(tasks[next_task], 2, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+            MPI_Send(tasks[next_task], 2, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
 
             // Enviar tamanhos das séries
             int len_r = lengths[tasks[next_task][0]];
             int len_c = lengths[tasks[next_task][1]];
-          //MPI_Send(&len_r, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
-          //MPI_Send(&len_c, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+            MPI_Send(&len_r, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
+            MPI_Send(&len_c, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
 
             // Enviar os vetores de preços
             MPI_Send(s[tasks[next_task][0]], len_r, MPI_DOUBLE, i, WORKTAG, MPI_COMM_WORLD);
             MPI_Send(s[tasks[next_task][1]], len_c, MPI_DOUBLE, i, WORKTAG, MPI_COMM_WORLD);
-            last_send[i] = next_task;
             next_task++;
             #if VERBOSE
                 printf("\nMaster[%d]: sending new work (task %d) to slave %d with positions [%d,%d].", my_rank, next_task-1, i, tasks[next_task-1][0], tasks[next_task-1][1]);
@@ -244,41 +242,39 @@ int main(int argc, char *argv[]) {
             MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);  // probe first message to read it to the right bag position
 
             // sera que 3 é tamanho suficiente?
-            MPI_Recv(result_recv, 1, MPI_DOUBLE, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD, &status);
+            MPI_Recv(result_recv, 3, MPI_DOUBLE, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD, &status);
 
             #if VERBOSE
-                printf("\nMaster[%d]: message received from slave %d [%d][%d] with value [%f].", my_rank, status.MPI_SOURCE,
-                    tasks[last_send[status.MPI_SOURCE]][0], tasks[last_send[status.MPI_SOURCE]][1], result_recv[0]);
+                printf("\nMaster[%d]: message received from slave %d [%f][%f] with value [%f].", my_rank, status.MPI_SOURCE,
+                    result_recv[0], result_recv[1], result_recv[2]);
                 fflush(stdout);
             #endif
 
             // Store result in output
-            int task_index = last_send[status.MPI_SOURCE];
-            r = tasks[task_index][0];
-            c = tasks[task_index][1];
-
+            r = (idx_t) result_recv[0];
+            c = (idx_t) result_recv[1];
 
             // Same indexing as OpenMP version
             if (block.triu) {
                 r_i = r - block.rb;
                 c_i = c - cbs[r_i];
-                result[rls[r_i] + c_i] = result_recv[0];
+                result[rls[r_i] + c_i] = result_recv[2];
             } else {
                 r_i = r - block.rb;
                 c_i = c - block.cb;
-                result[(block.ce - block.cb) * r_i + c_i] = result_recv[0];
+                result[(block.ce - block.cb) * r_i + c_i] = result_recv[2];
             }
 
             if (next_task < num_tasks) {
                 // still some work to do, send it to the free slave
                 // enviar par de índices
-                //MPI_Send(tasks[next_task], 2, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+                MPI_Send(tasks[next_task], 2, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
 
                 // Enviar tamanhos das séries
                 int len_r = lengths[tasks[next_task][0]];
                 int len_c = lengths[tasks[next_task][1]];
-                //MPI_Send(&len_r, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
-                //MPI_Send(&len_c, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+                MPI_Send(&len_r, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
+                MPI_Send(&len_c, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
 
                 // Enviar os vetores de preços
                 MPI_Send(s[tasks[next_task][0]], len_r, MPI_DOUBLE, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
@@ -287,7 +283,6 @@ int main(int argc, char *argv[]) {
                     printf("\nMaster[%d]: sending new work (task %d) to slave %d with positions [%d,%d].", my_rank, next_task, status.MPI_SOURCE, tasks[next_task][0], tasks[next_task][1]);
                     fflush(stdout);
                 #endif
-                last_send[status.MPI_SOURCE] = next_task;
                 next_task++;
             } else {
                 // no more work to do, send a kill to the free slave
@@ -318,10 +313,10 @@ int main(int argc, char *argv[]) {
     } else {
         // I am the slave!
         int task_counter = 0;
-        //int (*message) = malloc(2 * sizeof(int)); // slave message buffer
+        int (*message) = malloc(2 * sizeof(int)); // slave message buffer
 
         while (1) {
-            MPI_Probe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            MPI_Recv(message, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status); // receive task
 
             if (status.MPI_TAG == KILLTAG) {
                 #if VERBOSE
@@ -330,21 +325,18 @@ int main(int argc, char *argv[]) {
                 #endif
                 break;
             } else if (status.MPI_TAG == WORKTAG) {
-                int count;
                 // Receber tamanhos
-                // Primeira série
-                MPI_Probe(0, WORKTAG, MPI_COMM_WORLD, &status);
-                MPI_Get_count(&status, MPI_DOUBLE, &count);
-                double *series_r = malloc(count * sizeof(double));
-                MPI_Recv(series_r, count, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
-                int len_r = count;
+                int len_r, len_c;
+                MPI_Recv(&len_r, 1, MPI_INT, 0, WORKTAG, MPI_COMM_WORLD, &status);
+                MPI_Recv(&len_c, 1, MPI_INT, 0, WORKTAG, MPI_COMM_WORLD, &status);
 
-                // Segunda série
-                MPI_Probe(0, WORKTAG, MPI_COMM_WORLD, &status);
-                MPI_Get_count(&status, MPI_DOUBLE, &count);
-                double *series_c = malloc(count * sizeof(double));
-                MPI_Recv(series_c, count, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
-                int len_c = count;
+                // Alocar buffers temporários
+                double *series_r = malloc(len_r * sizeof(double));
+                double *series_c = malloc(len_c * sizeof(double));
+
+                // Receber dados das séries
+                MPI_Recv(series_r, len_r, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
+                MPI_Recv(series_c, len_c, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
 
                 double value = dtw_distance(series_r, len_r, series_c, len_c, &settings);
 
@@ -359,16 +351,21 @@ int main(int argc, char *argv[]) {
                     fflush(stdout);
                 #endif
                 // Enviar resultado ao mestre
-                double result_send[1] = { value };
-                MPI_Send(result_send, 1, MPI_DOUBLE, 0, RESULTTAG, MPI_COMM_WORLD);
+                double result_send[3] = { (double) message[0], (double) message[1], value };
+                MPI_Send(result_send, 3, MPI_DOUBLE, 0, RESULTTAG, MPI_COMM_WORLD);
                 task_counter++;
             } else {
-                printf("\nSlave[%d] message tag %d received from master!", my_rank, status.MPI_TAG);
+                printf("\nSlave[%d]: unknown message tag %d received from master!", my_rank, status.MPI_TAG);
                 fflush(stdout);
             }
         }
         printf("\n\n");
     }
+
+
+
+
+
 
     MPI_Finalize();
     return 0;

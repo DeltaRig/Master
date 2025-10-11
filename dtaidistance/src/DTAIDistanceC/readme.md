@@ -144,7 +144,11 @@ ladrun -np --exclusive -n 3 ./mpi_merg
 
 srun -N 1 -n 1 -t 10 --exclusive ./dtadistance/src/DTAIDistanceC/example dados/master_tickers.csv 8 0 > out.txt
 
-srun -N 1 -n 1 -t 96 --exclusive ./run.sh >> out100.txt
+chmod +x run.hs
+srun -N 1 -n 24 -t 1000 --exclusive ./run.sh >> outMPI.txt &
+
+srun -N 1 -n 3 -t 1000 --exclusive ./dtaidistance/src/DTAIDistanceC/exampleM dados/master_tickers.csv 100 1 0 out/master_tickersmpi3to100v1.csv  >> outMPI7v1.txt &
+
 
 ## Aggregation
 
