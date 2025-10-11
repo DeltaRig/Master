@@ -111,8 +111,9 @@ int main(int argc, char *argv[]) {
     //int aggregation = atoi(argv[4]);
     const char *result_file = argv[5];
 
-    printf("Max OpenMP threads = %d\n", omp_get_max_threads());
-
+    #if VERBOSE
+      printf("Max OpenMP threads = %d\n", omp_get_max_threads());
+    #endif
 
     MPI_Init(&argc, &argv);
 
@@ -142,7 +143,9 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD); // Espera todos chegarem aqui
 
     if (my_rank == 0) {
-        printf("Loading time series...\n");
+        #if VERBOSE
+          printf("Master[%d]: loading time series...\n", my_rank);
+        #endif
         TickerSeries *series = malloc(sizeof(TickerSeries) * max_assets);
         if (!series) {
             fprintf(stderr, "Erro: não foi possível alocar memória para séries\n");
@@ -155,7 +158,9 @@ int main(int argc, char *argv[]) {
             free(series);
             return 1;
         }
-        printf("Loaded %d time series\n", num_series);
+        #if VERBOSE
+          printf("Loaded %d time series\n", num_series);
+        #endif  
 
         // example code
         double *s[num_series];
@@ -173,7 +178,9 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        printf("DTW Settings and run...\n");
+        #if VERBOSE
+          printf("DTW Settings and run...\n");
+        #endif
         DTWBlock block = dtw_block_empty();
 
     
@@ -182,8 +189,11 @@ int main(int argc, char *argv[]) {
         }
 
         int num_tasks = (num_series * num_series - num_series) / 2; // total number of (r,c) pairs excluding (r,r)
-        printf("\nMaster[%d]: bag with %d tasks of size %ld.", my_rank, num_tasks, lengths[0]);
-        fflush(stdout);
+        #if VERBOSE
+            printf("\nMaster[%d]: bag with %d tasks of size %ld.", my_rank, num_tasks, lengths[0]);
+            fflush(stdout);
+        #endif
+
 
         // Allocate task list
         int (*tasks)[2] = malloc(num_tasks * sizeof *tasks);
@@ -293,7 +303,10 @@ int main(int argc, char *argv[]) {
         printf("Execution time = %f sec = %f ms\n", diff_t, diff_t2 / 1000000);
 
         save_result(num_series, result, series, result_file);
-        printf("Result saved\n");
+
+        #if VERBOSE
+          printf("Result saved\n");
+        #endif
         free(result);
         free(series);
 
