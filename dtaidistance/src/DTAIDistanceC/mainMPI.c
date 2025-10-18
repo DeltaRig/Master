@@ -16,7 +16,7 @@
 #define KILLTAG 2
 #define RESULTTAG 3
 
-#define VERBOSE 0
+#define VERBOSE 1
 
 int dtw_distances_prepare(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
     idx_t cb, rs, ir;
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
 
 
     DTWSettings settings = dtw_settings_default();
-    MPI_Barrier(MPI_COMM_WORLD); // Espera todos chegarem aqui
+    
 
     if (my_rank == 0) {
         #if VERBOSE
@@ -240,15 +240,16 @@ int main(int argc, char *argv[]) {
 
         while (kill_msg > 0) { // continue while kill_msg kill messages are not send
             // receive dtw result independently from source and tag
-            double result_recv[3];
+            float result_recv;
             MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);  // probe first message to read it to the right bag position
 
+            
             // sera que 3 é tamanho suficiente?
-            MPI_Recv(result_recv, 1, MPI_DOUBLE, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD, &status);
+            MPI_Recv(&result_recv, 1, MPI_FLOAT, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD, &status);
 
             #if VERBOSE
                 printf("\nMaster[%d]: message received from slave %d [%d][%d] with value [%f].", my_rank, status.MPI_SOURCE,
-                    tasks[last_send[status.MPI_SOURCE]][0], tasks[last_send[status.MPI_SOURCE]][1], result_recv[0]);
+                    tasks[last_send[status.MPI_SOURCE]][0], tasks[last_send[status.MPI_SOURCE]][1], result_recv);
                 fflush(stdout);
             #endif
 
@@ -262,11 +263,11 @@ int main(int argc, char *argv[]) {
             if (block.triu) {
                 r_i = r - block.rb;
                 c_i = c - cbs[r_i];
-                result[rls[r_i] + c_i] = result_recv[0];
+                result[rls[r_i] + c_i] = result_recv;
             } else {
                 r_i = r - block.rb;
                 c_i = c - block.cb;
-                result[(block.ce - block.cb) * r_i + c_i] = result_recv[0];
+                result[(block.ce - block.cb) * r_i + c_i] = result_recv;
             }
 
             if (next_task < num_tasks) {
@@ -333,7 +334,7 @@ int main(int argc, char *argv[]) {
                 int count;
                 // Receber tamanhos
                 // Primeira série
-                MPI_Probe(0, WORKTAG, MPI_COMM_WORLD, &status);
+                
                 MPI_Get_count(&status, MPI_DOUBLE, &count);
                 double *series_r = malloc(count * sizeof(double));
                 MPI_Recv(series_r, count, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
@@ -346,7 +347,7 @@ int main(int argc, char *argv[]) {
                 MPI_Recv(series_c, count, MPI_DOUBLE, 0, WORKTAG, MPI_COMM_WORLD, &status);
                 int len_c = count;
 
-                double value = dtw_distance(series_r, len_r, series_c, len_c, &settings);
+                float value = dtw_distance(series_r, len_r, series_c, len_c, &settings);
 
                 // Liberar buffers
                 free(series_r);
@@ -359,8 +360,8 @@ int main(int argc, char *argv[]) {
                     fflush(stdout);
                 #endif
                 // Enviar resultado ao mestre
-                double result_send[1] = { value };
-                MPI_Send(result_send, 1, MPI_DOUBLE, 0, RESULTTAG, MPI_COMM_WORLD);
+                float result_send = value;
+                MPI_Send(&result_send, 1, MPI_FLOAT, 0, RESULTTAG, MPI_COMM_WORLD);
                 task_counter++;
             } else {
                 printf("\nSlave[%d] message tag %d received from master!", my_rank, status.MPI_TAG);
