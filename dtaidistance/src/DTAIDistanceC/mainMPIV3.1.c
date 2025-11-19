@@ -100,19 +100,17 @@ int main(int argc, char *argv[]) {
         // expecting 5 or 6 arguments
         fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <batch_size> <non used> <file_result_destination> [--reuse]\n", argv[0]);
         fprintf(stderr, "<batch_size>: size of the batch to process (must be > 0)\n");
-        fprintf(stderr, "<aggregation_type> don't run aggregation if <= 0\n");
         fprintf(stderr, "[--reuse] optional flag to reuse existing DTW result for aggregation\n");
         fprintf(stderr, "Example: %s data/prices.csv 100 openmp 1 results/dtw_result.csv --reuse\n", argv[0]);
         return 1;
     }
+    //fprintf(stderr, "starting mainMPIv3.1\n");
 
-    // to jump to aggregation directly when we already have the result
-    //bool reuse = (argc == 7 && strcmp(argv[6], "--reuse") == 0);
 
     const char *file_path = argv[1];
     int max_assets = atoi(argv[2]);
+    // add batch size to control how many pairs to send at once
     int batch_size = atoi(argv[3]); 
-    //int aggregation = atoi(argv[4]);
     const char *result_file = argv[5];
 
     #if VERBOSE
@@ -226,7 +224,8 @@ int main(int argc, char *argv[]) {
             int position = 0;
             char buffer[BUF_SIZE];
 
-            // Pack the batch count
+            // *************** added on version 3 ***************
+            // Pack the batch count // added on version 3
             MPI_Pack(&batch_count, 1, MPI_INT, buffer, BUF_SIZE, &position, MPI_COMM_WORLD);
 
             // Pack each pair's series (length + values)
@@ -288,7 +287,8 @@ int main(int argc, char *argv[]) {
 
             // assign next batch or send KILLTAG
             if (next_task < num_tasks) {
-                // Determine how many tasks will be included in the next batch
+                // *************** added on version 3 ***************
+                // Determine how many tasks will be included in the next batch, if have less than batch_size, send the remaining
                 int batch_count = (num_tasks - next_task < batch_size)
                                     ? (num_tasks - next_task)
                                     : batch_size;
