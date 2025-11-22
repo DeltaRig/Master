@@ -18,6 +18,9 @@
 #include <stdio.h>
 
 
+#define VERBOSE 0
+
+
 // n is the number of time series
 bool save_result(int n, double *result, TickerSeries *series_list, const char *filename) {
     FILE *fptr;
@@ -55,7 +58,9 @@ void example(TickerSeries *series, int num_series, int aggregation_type, const c
         return;
     }
 
-    printf("DTW Settings and run...\n");
+    #if VERBOSE
+      printf("DTW Settings and run...\n");
+    #endif
     time_t start_t, end_t;
     struct timespec start, end;
     double diff_t, diff_t2;
@@ -68,17 +73,11 @@ void example(TickerSeries *series, int num_series, int aggregation_type, const c
 
     if (parallel_type == 0) {
         // OpenMP version
-        printf("DTW OpenMP...\n");
+        #if VERBOSE
+          printf("DTW OpenMP...\n");
+        #endif
         dtw_distances_ptrs_parallel(s, num_series, lengths, result, &block, &settings);
-    } else {
-        // MPI version
-        printf("DTW MPI MS...\n");
-        int tag = dtw_distances_ptrs_parallel_MS(s, num_series, lengths, result, &block, &settings);
-        if (tag != 1) {
-            printf("Slave kill\n");
-            return;
-        }   
-    }
+    } // MPI version implemented separeted
 
 
     time(&end_t);
@@ -118,15 +117,19 @@ int main(int argc, char *argv[]) {
     int aggregation = atoi(argv[4]);
     const char *result_file = argv[5];
 
-    printf("Max OpenMP threads = %d\n", omp_get_max_threads());
-
-    if (is_openmp_supported()) {
+    #if VERBOSE
+      printf("Max OpenMP threads = %d\n", omp_get_max_threads());
+      if (is_openmp_supported()) {
         printf("OpenMP is supported\n");
-    } else {
-        printf("OpenMP is not supported\n");
-    }
+        } else {
+            printf("OpenMP is not supported\n");
+        }
+    #endif
+    
 
-    printf("Loading time series...\n");
+    #if VERBOSE
+        printf("Loading time series...\n");
+    #endif
     TickerSeries *series = malloc(sizeof(TickerSeries) * max_assets);
     if (!series) {
         fprintf(stderr, "Erro: não foi possível alocar memória para séries\n");
@@ -139,10 +142,13 @@ int main(int argc, char *argv[]) {
         free(series);
         return 1;
     }
-    printf("Loaded %d time series\n", num_series);
-
+    #if VERBOSE
+      printf("Loaded %d time series\n", num_series);
+    #endif
     if (reuse) {
-        printf("Reusing existing DTW result for aggregation.\n"); 
+        #if VERBOSE
+          printf("Reusing existing DTW result for aggregation.\n");
+        #endif
 
         idx_t result_length = num_series * (num_series - 1) / 2;
         double *result = malloc(sizeof(double) * result_length);

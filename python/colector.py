@@ -91,7 +91,7 @@ INDY=['ADANIENT','ADANIPORTS','APOLLOHOSP','ASIANPAINT','AXISBANK','BAJAJ-AUTO',
 
 global_tickers= ibov_tickers + sp500 + EWT + EWJ + UAE + MCHI + EWQ + INDY
 
-with open("../dados/pre-NASDAQ.csv", "r") as f:
+with open("/home/dani/Documents/git/Master/dados/pre-NASDAQ.csv", "r") as f:
     lines = f.readlines()
 nasdaq = [line.strip().split(',')[0] for line in lines if line.strip()]
 
@@ -280,7 +280,7 @@ def download_or_update(period_name, list_name, tickers, interval, keep_window, m
 # RUN PIPELINE
 # --------------------------
 for period_name, interval, window, minimum in configs:
-    df_final = download_or_update(period_name, "test_m", test_m, interval, window, minimum)
+    df_final = download_or_update(period_name, "master_tickers_br_EUA", master_tickers_br_EUA, interval, window, minimum)
 
 # delete old data
 # 

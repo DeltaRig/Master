@@ -101,6 +101,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Example: %s data/prices.csv 100 openmp 1 results/dtw_result.csv --reuse\n", argv[0]);
         return 1;
     }
+    fprintf(stderr, "starting mainMPIv1 with 5 messages\n");
 
     // to jump to aggregation directly when we already have the result
     //bool reuse = (argc == 7 && strcmp(argv[6], "--reuse") == 0);

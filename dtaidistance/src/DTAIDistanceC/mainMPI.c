@@ -1,5 +1,6 @@
 // create by
 // modified by Daniela Rigoli at June 2025
+// version 2 MPI just send two messages per task
 
 #include <stdio.h>
 #include <time.h>
@@ -16,7 +17,7 @@
 #define KILLTAG 2
 #define RESULTTAG 3
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 int dtw_distances_prepare(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
     idx_t cb, rs, ir;
@@ -101,6 +102,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Example: %s data/prices.csv 100 openmp 1 results/dtw_result.csv --reuse\n", argv[0]);
         return 1;
     }
+    fprintf(stderr, "starting mainMPIv2\n");
 
     // to jump to aggregation directly when we already have the result
     //bool reuse = (argc == 7 && strcmp(argv[6], "--reuse") == 0);
