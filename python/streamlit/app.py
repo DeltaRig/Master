@@ -10,11 +10,13 @@ DATA_DIR = "../data"
 NORM_DIR = "../normalized"
 DTW_DIR = "../dtw"
 
+prefix =  "master_tickers_br_EUA" #"master_tickers_br_EUA" or "test_m"
+
 PERIODS = {
-    "2 years (1d)": "test_m_2years_1d.csv",
-    "6 months (4h)": "test_m_6months_4h.csv",
-    "7 days (60m)": "test_m_7days_60m.csv",
-    "24 hours (1m)": "test_m_24hours_1m.csv"
+    "2 years (1d)": prefix+"_2years_1d.csv",
+#    "6 months (4h)": prefix+"_6months_4h.csv",
+    "7 days (60m)": prefix+"_7days_60m.csv",
+    "24 hours (1m)": prefix+"_24hours_1m.csv"
 }
 
 # ==============================
@@ -84,9 +86,22 @@ if "ticker" not in st.session_state:
 
 # Load all tickers from all periods for initial selection
 all_tickers = set()
+# for file in PERIODS.values():
+#    df_tmp = load_data(os.path.join(DATA_DIR, file))
+#    all_tickers.update(df_tmp["Ticker"].unique())
 for file in PERIODS.values():
     df_tmp = load_data(os.path.join(DATA_DIR, file))
-    all_tickers.update(df_tmp["Ticker"].unique())
+
+    # Remove NaN e força string
+    tickers_clean = (
+        df_tmp["Ticker"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .unique()
+    )
+
+    all_tickers.update(tickers_clean)
 all_tickers = sorted(all_tickers)
 
 ticker = st.selectbox(
@@ -99,7 +114,7 @@ period_label = st.selectbox("Select period", list(PERIODS.keys()))
 
 filename = PERIODS[period_label]
 df = load_data(os.path.join(DATA_DIR, filename))
-tickers = sorted(df["Ticker"].unique())
+tickers = sorted(df["Ticker"].dropna().unique())
 
 # If the selected ticker is not in the current period, show warning and stop
 if ticker not in tickers:

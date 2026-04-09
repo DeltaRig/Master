@@ -98,3 +98,4 @@ e seguir as instruções apresentadas.
 
 Pedimos que leia nossa apostila de utilização do LAD. Ela foi derivada de um minicurso para novos grupos de usuários e é fortemente recomendada para que entendas o ambiente do LAD.
 https://lad-pucrs.github.io/docs/
+
