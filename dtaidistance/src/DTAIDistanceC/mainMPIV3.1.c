@@ -20,7 +20,7 @@
 #define MAX_SERIES_LEN 4000
 #define BUF_SIZE (int)(batch_size * (16 + 16 * MAX_SERIES_LEN) * 1.2)  // adjust depending on expected pack size // bytes_per_pair ≈ 4*4 (ints) + 8*(len_r + len_c)
 
-#define VERBOSE 0
+#define VERBOSE 1
 
 int dtw_distances_prepare(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
     idx_t cb, rs, ir;
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
             int start_idx = last_send[status.MPI_SOURCE];
             #if VERBOSE
                 printf("\nMaster[%d]: message received from slave %d [%d][%d] with value [%f].", my_rank, status.MPI_SOURCE,
-                    tasks[last_send[status.MPI_SOURCE]][0], tasks[last_send[status.MPI_SOURCE]][1], result_recv);
+                    tasks[last_send[status.MPI_SOURCE]][0], tasks[last_send[status.MPI_SOURCE]][1], results_batch[0]);
                 fflush(stdout);
             #endif
             for (int b = 0; b < batch_count; b++) {
@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 #if VERBOSE
-                    printf("\nSlave[%d]: task [%d] sending result", my_rank, task_counter);
+                    printf("\nSlave[%d]: sending result", my_rank);
                     fflush(stdout);
                 #endif
                 // Enviar resultado ao mestre

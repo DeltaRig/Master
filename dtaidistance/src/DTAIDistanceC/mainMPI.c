@@ -218,13 +218,10 @@ int main(int argc, char *argv[]) {
         // adicionar verificaçao se o numero de processos é maior que o numero de tasks
         for (i = 1; i < proc_n; i++) {  // begin with first slave (process 1, since master is 0)
             // Enviar par de índices
-            //MPI_Send(tasks[next_task], 2, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
 
             // Enviar tamanhos das séries
             int len_r = lengths[tasks[next_task][0]];
             int len_c = lengths[tasks[next_task][1]];
-          //MPI_Send(&len_r, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
-          //MPI_Send(&len_c, 1, MPI_INT, i, WORKTAG, MPI_COMM_WORLD);
 
             // Enviar os vetores de preços
             MPI_Send(s[tasks[next_task][0]], len_r, MPI_DOUBLE, i, WORKTAG, MPI_COMM_WORLD);
@@ -275,13 +272,10 @@ int main(int argc, char *argv[]) {
             if (next_task < num_tasks) {
                 // still some work to do, send it to the free slave
                 // enviar par de índices
-                //MPI_Send(tasks[next_task], 2, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
 
                 // Enviar tamanhos das séries
                 int len_r = lengths[tasks[next_task][0]];
                 int len_c = lengths[tasks[next_task][1]];
-                //MPI_Send(&len_r, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
-                //MPI_Send(&len_c, 1, MPI_INT, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
 
                 // Enviar os vetores de preços
                 MPI_Send(s[tasks[next_task][0]], len_r, MPI_DOUBLE, status.MPI_SOURCE, WORKTAG, MPI_COMM_WORLD);
