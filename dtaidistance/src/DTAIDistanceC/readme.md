@@ -73,9 +73,9 @@ original:
           -I./DTAIDistanceC/
 
 ```
-gcc -o example example.c \
+mpicc -o example example.c \
     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c \
-    DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c DTAIDistanceC/dd_dtw_mpi.c \
+    DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c \
     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
     -Wall -g -fopenmp -lm \
     -I./DTAIDistanceC/
@@ -95,7 +95,11 @@ mpicc -o exampleMV2 mainMPI.c     assets/load_from_csv.c assets/aggregation.c as
 
 mpicc -o exampleMV3 mainMPIV3.1.c     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c     DTAIDistanceC/dd_dtw.c  DTAIDistanceC/dd_dtw_mpi.c     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c     -Wall -g -fopenmp -lm     -I./DTAIDistanceC/
 
-mpicc -o exampleMV3Datatype mainMPIV3.2Datatype.c     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c     DTAIDistanceC/dd_dtw.c  DTAIDistanceC/dd_dtw_mpi.c     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c     -Wall -g -fopenmp -lm     -I./DTAIDistanceC/
+mpicc -o exampleMV3Datatype     mainMPIV3.2Datatype.c     assets/load_from_csv.c     assets/aggregation.c     assets/call_aggregation.c     DTAIDistanceC/dd_dtw.c     DTAIDistanceC/dd_dtw_mpi.c     DTAIDistanceC/dd_ed.c     DTAIDistanceC/dd_globals.c     -Wall -g -O3 -fopenmp -lm     -I./DTAIDistanceC/
+
+mpicc -o Datatype     mainMPIV3.3Datatype.c     assets/load_from_csv.c     assets/aggregation.c     assets/call_aggregation.c     DTAIDistanceC/dd_dtw.c     DTAIDistanceC/dd_dtw_mpi.c     DTAIDistanceC/dd_ed.c     DTAIDistanceC/dd_globals.c     -Wall -g -O3 -fopenmp -lm     -I./DTAIDistanceC/
+
+mpicc -o hybrid mainHybrid.c     assets/load_from_csv.c assets/aggregation.c assets/call_aggregation.c     DTAIDistanceC/dd_dtw.c  DTAIDistanceC/dd_dtw_mpi.c     DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c     -Wall -g -fopenmp -lm     -I./DTAIDistanceC/
 
 ### 🚀 Execution
 
@@ -118,6 +122,7 @@ est_m_2years_1d_mpi.csv
 
 This runs the program on 24 series from master_tickers.csv using aggregation and 4 threads.
 
+
 ### 🧵 Thread Testing Matrix
 Experiment with different thread counts to analyze performance:
 
@@ -137,16 +142,24 @@ dpkg -L libomp-dev
 Transfer project and data using scp:
 
 ```
-scp -r /home/dani/Documents/git/Master/dtaidistance daniela.rigoli@sparta.pucrs.br:
+scp -r /home/dani/Documents/git/Master/dados/master_tickers_br_us2200.csv daniela.rigoli@sparta.pucrs.br:
 scp -r /home/dani/Documents/git/Master/dados daniela.rigoli@sparta.pucrs.br:
+scp -r /home/dani/Documents/git/Master/python/data/master_tickers_br_EUA_2years_1d.csv daniela.rigoli@sparta.pucrs.br:
 ```
+
+scp -r /home/dani/Documents/git/Master/dtaidistance/src/DTAIDistanceC/mainMPIV3.1.c daniela.rigoli@sparta.pucrs.br:
 
 ```
 scp -r dados daniela.rigoli@pantanal.lad.pucrs.br:
 scp -r dtaidistance daniela.rigoli@pantanal.lad.pucrs.br:
 ```
 
-scp -r dtaidistance student@pantanal01
+scp -r dados/master_tickers_br_us2200.csv student@pantanal01:daniela/dados
+
+
+scp -r dtaidistance/src/DTAIDistanceC/mainMPIV3.2Datatype.c student@pantanal01:daniela/dtaidistance/src/DTAIDistanceC
+
+791806
 
 ### ⚙️ Job Execution
 
@@ -168,6 +181,10 @@ srun -N 2 -n 48 -t 1000 --exclusive ./dtaidistance/src/DTAIDistanceC/exampleMV2 
 
 
 mpirun -np 24 ./dtaidistance/src/DTAIDistanceC/exampleMV2 dados/master_tickers.csv 800 10 0 master_tickersmpiV3.csv  >> MV3_800s_N1n24b10.txt
+
+mpirun -np 12 ./dtaidistance/src/DTAIDistanceC/exampleMV3 dados/master_tickers.csv 8 2 0 master_tickersmpiV3.csv
+
+mpirun -np 24 MV3Datatype /home/dani/Documents/git/Master/dados/master_tickers_br_us.csv 10 2 resultDt.csv
 
 ## Aggregation
 
