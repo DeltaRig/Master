@@ -13,6 +13,8 @@
 #include "dd_dtw.h"
 #include "assets/load_from_csv.h"
 
+#define COUNTPAIR 0
+
 // =======================================================
 // Save extended results
 // =======================================================
@@ -73,6 +75,10 @@ int main(int argc, char *argv[]) {
     // =============================
     // Load time series
     // =============================
+    #if COUNTPAIR == 0
+        struct timespec t1, t2;
+        clock_gettime(CLOCK_REALTIME, &t1);
+    #endif
     TickerSeries *series = malloc(sizeof(TickerSeries) * max_assets);
 
     int num_series = 0;
@@ -113,8 +119,11 @@ int main(int argc, char *argv[]) {
     for (int r = 0; r < num_series; r++) {
         for (int c = r + 1; c < num_series; c++) {
 
-            struct timespec t1, t2;
-            clock_gettime(CLOCK_REALTIME, &t1);
+            
+            #if COUNTPAIR
+                struct timespec t1, t2;
+                clock_gettime(CLOCK_REALTIME, &t1);
+            #endif
 
             double dist = dtw_distance(
                 s[r], lengths[r],
@@ -122,23 +131,35 @@ int main(int argc, char *argv[]) {
                 &settings
             );
 
-            clock_gettime(CLOCK_REALTIME, &t2);
-
-            double ms =
-                (double)(t2.tv_sec * 1e9 + t2.tv_nsec
-                        - t1.tv_sec * 1e9 - t1.tv_nsec) / 1e6;
-
             result[idx]     = dist;
-            time_ms[idx]    = ms;
+
             len_r_arr[idx]  = lengths[r];
             len_c_arr[idx]  = lengths[c];
 
-            printf("(%d,%d) -> dist=%f  time=%.2f ms\n",
-                   r, c, dist, ms);
+            #if COUNTPAIR
+                clock_gettime(CLOCK_REALTIME, &t2);
+
+                double ms =
+                    (double)(t2.tv_sec * 1e9 + t2.tv_nsec
+                            - t1.tv_sec * 1e9 - t1.tv_nsec) / 1e6;
+
+            time_ms[idx]    = ms;
+
+                printf("(%d,%d) -> dist=%f  time=%.2f ms\n", r, c, dist, ms);
+            #endif
 
             idx++;
         }
     }
+
+    #if COUNTPAIR == 0
+        clock_gettime(CLOCK_REALTIME, &t2);
+
+        double ms =
+            (double)(t2.tv_sec * 1e9 + t2.tv_nsec
+                    - t1.tv_sec * 1e9 - t1.tv_nsec) / 1e6;
+            printf("Total time for %d pairs: %.2f ms\n", total_pairs, ms);
+    #endif
 
     // =============================
     // SAVE TO FILE
@@ -158,6 +179,7 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Saved OK.\n");
     }
+    
 
     // cleanup
     free(result);

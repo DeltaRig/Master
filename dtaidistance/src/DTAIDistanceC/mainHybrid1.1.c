@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
         int num_series = 0;
 
         load_series_from_csv(csv_path, series, &num_series, max_assets);
-
+        
         double *s[num_series];
         int lengths[num_series];
 

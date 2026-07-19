@@ -5,7 +5,7 @@ from sklearn.manifold import MDS
 
 # Load distance matrix
 dist_df = pd.read_csv("dtw_distance_matrix.csv", index_col=0)
-labels_df = pd.read_csv("dtw_kmedoids_clusters.csv")
+labels_df = pd.read_csv("dtw_clusters.csv")
 
 tickers = dist_df.index.to_list()
 dist_matrix = dist_df.to_numpy()

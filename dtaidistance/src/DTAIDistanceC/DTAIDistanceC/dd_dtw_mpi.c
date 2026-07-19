@@ -107,6 +107,9 @@ int dtw_distances_prepare_MS(DTWBlock *block, idx_t nb_series_r, idx_t nb_series
 }
 
 /*
+MPI Version 1
+All process read the file and organize in memory all stocks. Master send the position of the stocks and slaves calculate and respond the value to master organize.
+
 MPI_INIT,MPI_FINALIZE happen at main
 
 ptrs: list of pointers to series
@@ -295,3 +298,12 @@ idx_t dtw_distances_ptrs_parallel_MS(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths
     MPI_Finalize();  // finalize MPI environment
     return 1;
 }
+
+/*
+MPI Version 2
+Just master have the information in memory and will send by message the sequence to be calculated. Master is responsible to organize the block of results in momery and return it.
+
+MPI_INIT
+MPI_FINALIZE happen at main
+*/
+
