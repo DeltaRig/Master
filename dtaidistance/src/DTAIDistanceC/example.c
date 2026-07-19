@@ -1,4 +1,5 @@
-// create by
+//  Copyright © 2025 Wannes Meert.
+//  Apache License, Version 2.0, see LICENSE for details.
 // modified by Daniela Rigoli at June 2025
 
 

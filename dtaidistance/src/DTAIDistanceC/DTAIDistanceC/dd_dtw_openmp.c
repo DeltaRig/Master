@@ -114,6 +114,65 @@ idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
     // Using schedule("static, 1") is also fast for the same reason (neighbor rows are almost
     // the same length, thus a circular assignment works well) but assumes all DTW computations take
     // the same amount of time.
+    #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
+    for (r_i=0; r_i < (block->re - block->rb); r_i++) {
+        r = block->rb + r_i;
+        c_i = 0;
+        if (block->triu) {
+            c = cbs[r_i];
+        } else {
+            c = block->cb;
+        }
+        for (; c<block->ce; c++) {
+            double value = dtw_distance(ptrs[r], lengths[r],
+                                        ptrs[c], lengths[c], settings);
+            if (block->triu) {
+                output[rls[r_i] + c_i] = value;
+            } else {
+                output[(block->ce - block->cb) * r_i + c_i] = value;
+            }
+            c_i++;
+        }
+    }
+    
+    if (block->triu) {
+        free(cbs);
+        free(rls);
+    }
+    return length;
+#else
+    printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    for  (r_i=0; r_i<length; r_i++) {
+        output[r_i] = 0;
+    }
+    return 0;
+#endif
+}
+
+
+/*!
+Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays and in parallel.
+
+@see dtw_distances_ptrs
+*/
+idx_t dtw_distances_ptrs_parallel_d(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
+                          seq_t* output, DTWBlock* block, DTWSettings* settings) {
+    idx_t r, c, r_i, c_i;
+    idx_t length;
+    idx_t *cbs, *rls;
+
+    if (dtw_distances_prepare(block, nb_ptrs, nb_ptrs, &cbs, &rls, &length, settings) != 0) {
+        return 0;
+    }
+    
+#if defined(_OPENMP)
+    r_i=0;
+    // Rows have different lengths, thus use guided scheduling to make threads with shorter rows
+    // not wait for threads with longer rows. Also the first rows are always longer than the last
+    // ones (upper triangular matrix), so this nicely aligns with the guided strategy.
+    // Using schedule("static, 1") is also fast for the same reason (neighbor rows are almost
+    // the same length, thus a circular assignment works well) but assumes all DTW computations take
+    // the same amount of time.
     #pragma omp parallel for private(r_i, c_i, r, c) schedule(dynamic)
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
         r = block->rb + r_i;

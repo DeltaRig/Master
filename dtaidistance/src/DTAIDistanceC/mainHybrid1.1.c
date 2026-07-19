@@ -1,3 +1,7 @@
+// DTW implementation created by 2025 Meert Wannes
+// modified by Daniela Rigoli at January 2026 to add Hybrid OpenMP+MPI support
+// version 2 MPI just send two messages per task
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

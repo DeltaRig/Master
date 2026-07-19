@@ -1,5 +1,8 @@
+// DTW implementation created by 2025 Meert Wannes
+// modified by Daniela Rigoli at June 2025 to add MPI support
+// version 2 MPI just send two messages per task
 /******************************************************
- * MPI DTW VERSION 3 — FIX 3 (real contiguous sendbuf)
+ * MPI DTW VERSION 3 — FIX 2 (real contiguous sendbuf)
  * Master/Slave using batches; master builds contiguous buffer
  * and sends single MPI_BYTE message per batch.
  *
@@ -10,6 +13,8 @@
  *  - Requires dd_dtw.h + assets/load_from_csv.h from your project.
  *  - BATCH size from argv[3]
  *  - Master rank = 0, slaves = 1..N-1
+
+ MPI V3 Zero-Copy Version with contiguous send buffer and explicit header for batch count and byte size.
  ******************************************************/
 
 #include <stdio.h>
@@ -29,11 +34,6 @@
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-
-    typedef struct {
-        int len_r;
-        int len_c;
-    } TaskHeader;
 
     int rank, nprocs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -116,9 +116,10 @@ int main(int argc, char *argv[]) {
             for (int b = 0; b < batch_count; b++) {
                 int r_idx = tasks[next_task + b][0];
                 int c_idx = tasks[next_task + b][1];
-                total_bytes += sizeof(TaskHeader);                   // header (len_r, len_c)
-                total_bytes += sizeof(double) * lengths[r_idx];      // series_r
-                total_bytes += sizeof(double) * lengths[c_idx];      // series_c
+                total_bytes += sizeof(int);                         // len_r
+                total_bytes += sizeof(double) * lengths[r_idx];    // series_r
+                total_bytes += sizeof(int);                         // len_c
+                total_bytes += sizeof(double) * lengths[c_idx];    // series_c
             }
 
             /* allocate contiguous buffer */
@@ -133,12 +134,9 @@ int main(int argc, char *argv[]) {
                 int len_r = lengths[r_idx];
                 int len_c = lengths[c_idx];
 
-                TaskHeader h;
-                h.len_r = len_r;
-                h.len_c = len_c;
-
-                memcpy(sendbuf + pos, &h, sizeof(TaskHeader)); pos += sizeof(TaskHeader);
+                memcpy(sendbuf + pos, &len_r, sizeof(int)); pos += sizeof(int);
                 memcpy(sendbuf + pos, s[r_idx], sizeof(double) * len_r); pos += sizeof(double) * len_r;
+                memcpy(sendbuf + pos, &len_c, sizeof(int)); pos += sizeof(int);
                 memcpy(sendbuf + pos, s[c_idx], sizeof(double) * len_c); pos += sizeof(double) * len_c;
             }
 
@@ -194,8 +192,9 @@ int main(int argc, char *argv[]) {
                 for (int b = 0; b < batch_count; b++) {
                     int r_idx = tasks[next_task + b][0];
                     int c_idx = tasks[next_task + b][1];
-                    total_bytes += sizeof(TaskHeader);
+                    total_bytes += sizeof(int);
                     total_bytes += sizeof(double) * lengths[r_idx];
+                    total_bytes += sizeof(int);
                     total_bytes += sizeof(double) * lengths[c_idx];
                 }
 
@@ -209,12 +208,9 @@ int main(int argc, char *argv[]) {
                     int len_r = lengths[r_idx];
                     int len_c = lengths[c_idx];
 
-                    TaskHeader h;
-                    h.len_r = len_r;
-                    h.len_c = len_c;
-
-                    memcpy(sendbuf + pos, &h, sizeof(TaskHeader)); pos += sizeof(TaskHeader);
+                    memcpy(sendbuf + pos, &len_r, sizeof(int)); pos += sizeof(int);
                     memcpy(sendbuf + pos, s[r_idx], sizeof(double)*len_r); pos += sizeof(double)*len_r;
+                    memcpy(sendbuf + pos, &len_c, sizeof(int)); pos += sizeof(int);
                     memcpy(sendbuf + pos, s[c_idx], sizeof(double)*len_c); pos += sizeof(double)*len_c;
                 }
 
@@ -301,20 +297,23 @@ int main(int argc, char *argv[]) {
                 if (!results) { fprintf(stderr, "SLAVE %d: results OOM\n", rank); MPI_Abort(MPI_COMM_WORLD,1); }
 
                 for (int b = 0; b < batch_count; b++) {
-                    /* read TaskHeader */
-                    TaskHeader h;
-                    memcpy(&h, recvbuf + pos, sizeof(TaskHeader)); pos += sizeof(TaskHeader);
+                    /* read len_r */
+                    int len_r = 0;
+                    memcpy(&len_r, recvbuf + pos, sizeof(int)); pos += sizeof(int);
 
-                    double *series_r = malloc(sizeof(double) * h.len_r);
+                    double *series_r = malloc(sizeof(double) * len_r);
                     if (!series_r) { fprintf(stderr,"SLAVE OOM r\n"); MPI_Abort(MPI_COMM_WORLD,1); }
-                    memcpy(series_r, recvbuf + pos, sizeof(double) * h.len_r); pos += sizeof(double) * h.len_r;
+                    memcpy(series_r, recvbuf + pos, sizeof(double) * len_r); pos += sizeof(double) * len_r;
 
-                    double *series_c = malloc(sizeof(double) * h.len_c);
+                    int len_c = 0;
+                    memcpy(&len_c, recvbuf + pos, sizeof(int)); pos += sizeof(int);
+
+                    double *series_c = malloc(sizeof(double) * len_c);
                     if (!series_c) { fprintf(stderr,"SLAVE OOM c\n"); MPI_Abort(MPI_COMM_WORLD,1); }
-                    memcpy(series_c, recvbuf + pos, sizeof(double) * h.len_c); pos += sizeof(double) * h.len_c;
+                    memcpy(series_c, recvbuf + pos, sizeof(double) * len_c); pos += sizeof(double) * len_c;
 
                     /* compute DTW */
-                    double d = dtw_distance(series_r, (idx_t)h.len_r, series_c, (idx_t)h.len_c, &settings);
+                    double d = dtw_distance(series_r, (idx_t)len_r, series_c, (idx_t)len_c, &settings);
                     results[b] = (float) d;
 
                     free(series_r);
@@ -332,6 +331,7 @@ int main(int argc, char *argv[]) {
             }
         } /* end while */
     } /* end slave */
+
     MPI_Finalize();
     return 0;
 }

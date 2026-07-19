@@ -1,5 +1,6 @@
-// create by
-// modified by Daniela Rigoli at June 2025
+// DTW implementation created by 2025 Meert Wannes
+// modified by Daniela Rigoli at June 2025 to add MPI support
+// version 2 MPI just send two messages per task
 
 #include <stdio.h>
 #include <time.h>
