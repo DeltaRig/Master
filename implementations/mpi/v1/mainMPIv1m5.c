@@ -7,10 +7,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include "dd_dtw.h"
-#include "dd_dtw_mpi.h"
 #include <mpi.h>
 #include "assets/load_from_csv.h"
-#include <stdio.h>
 
 /* tags */
 #define WORKTAG 1
@@ -93,13 +91,11 @@ bool save_result(int n, double *result, TickerSeries *series_list, const char *f
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 5) {
-        // expecting 5 or 6 arguments
-        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <openmp/mpi> <aggregation_type> <file_result_destination> [--reuse]\n", argv[0]);
-        fprintf(stderr, "<openmp/mpi>: 0 to use OpenMP, 1 to use MPI version 1, 2 to use MPI version 2\n");
-        fprintf(stderr, "<aggregation_type> don't run aggregation if <= 0\n");
+    if (argc < 4) {
+        // expecting 4 or 5 arguments
+        fprintf(stderr, "Uso: %s <caminho_csv> <max_assets> <file_result_destination> [--reuse]\n", argv[0]);
         fprintf(stderr, "[--reuse] optional flag to reuse existing DTW result for aggregation\n");
-        fprintf(stderr, "Example: %s data/prices.csv 100 openmp 1 results/dtw_result.csv --reuse\n", argv[0]);
+        fprintf(stderr, "Example: %s data/prices.csv 100 results/dtw_result.csv --reuse\n", argv[0]);
         return 1;
     }
     fprintf(stderr, "starting mainMPIv1 with 5 messages\n");
@@ -109,9 +105,7 @@ int main(int argc, char *argv[]) {
 
     const char *file_path = argv[1];
     int max_assets = atoi(argv[2]);
-    //int parallel_type = atoi(argv[3]); // 0 for openmp, 1 for mpi
-    //int aggregation = atoi(argv[4]);
-    const char *result_file = argv[5];
+    const char *result_file = argv[3];
 
     #if VERBOSE
       printf("Max OpenMP threads = %d\n", omp_get_max_threads());
@@ -186,7 +180,7 @@ int main(int argc, char *argv[]) {
         DTWBlock block = dtw_block_empty();
 
     
-        if (dtw_distances_prepare_MS(&block, num_series, num_series, &cbs, &rls, &length, &settings) != 0) {
+        if (dtw_distances_prepare(&block, num_series, num_series, &cbs, &rls, &length, &settings) != 0) {
             return 0;
         }
 

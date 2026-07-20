@@ -1,0 +1,44 @@
+# Data files (large datasets)
+dados/*.csv
+!dados/.gitkeep
+
+# Result files
+results/
+*.csv
+!implementations/**/README.md
+
+# Compiled binaries
+implementations/*/dtw_seq
+implementations/*/openmp_dynamic
+implementations/*/example_original
+implementations/*/mpi_v1
+implementations/*/mpi_v2
+implementations/*/mpi_v3
+implementations/*/hybrid
+implementations/*/*.o
+implementations/*/*.exe
+
+# Python
+python/__pycache__/
+python/*.pyc
+python/.pytest_cache/
+python/venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+venv/
+env/
+.venv/

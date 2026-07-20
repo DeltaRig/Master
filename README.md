@@ -5,7 +5,76 @@
 - Test the efficiency of DTW using varying numbers of threads (OpenMP).
 - Compare runtime and performance with and without **data aggregation**.
 - Validate and process **stock price data from CSV files**.
+- Compare different parallelization strategies: Sequential, OpenMP, MPI (v1, v2, v3), and Hybrid (MPI+OpenMP)
 
+## 📁 Repository Structure
+
+```
+Master/
+├── implementations/          # All DTW implementation versions
+│   ├── sequential/          # Baseline sequential implementation
+│   ├── openmp/              # OpenMP parallel implementations
+│   ├── mpi/                 # MPI implementations by version
+│   │   ├── v1/             # Initial MPI implementation
+│   │   ├── v2/             # Optimized communication pattern
+│   │   └── v3/             # Advanced datatype optimization
+│   └── hybrid/              # Hybrid MPI+OpenMP implementation
+├── results/                 # Organized results by implementation
+├── dados/                   # Dataset files
+├── scripts/                 # Execution scripts for all versions
+├── python/                  # Python data collection and visualization
+└── dtaidistance/           # Original DTAIDistance library
+```
+
+## 🚀 Quick Start
+
+Each implementation has its own Makefile and README:
+
+```bash
+# Build and run sequential version
+cd implementations/sequential
+make
+./dtw_seq <csv_path> <series_quantity> <aggregation_flag> <output_file>
+
+# Build and run OpenMP version
+cd implementations/openmp
+make
+export OMP_NUM_THREADS=8
+./openmp_dynamic <csv_path> <series_quantity> 0 <aggregation_flag> <output_file>
+
+# Build and run MPI versions
+cd implementations/mpi/v3  # or v1, v2
+make
+mpirun -np 4 ./mpi_v3 <csv_path> <series_quantity> <aggregation_flag> <output_file>
+
+# Build and run hybrid version
+cd implementations/hybrid
+make
+export OMP_NUM_THREADS=4
+mpirun -np 4 ./hybrid <csv_path> <series_quantity> <aggregation_flag> <output_file>
+```
+
+See individual implementation READMEs for detailed compilation and execution instructions.
+
+## 📜 Execution Scripts
+
+For quick execution and reproducibility, use the provided scripts in the `scripts/` directory:
+
+```bash
+# Local execution examples
+cd scripts
+./run_sequential.sh ../../dados/master_tickers.csv 100 0 ../../results/sequential/dtw_result.csv
+./run_openmp_dynamic.sh ../../dados/master_tickers.csv 100 8 0 ../../results/openmp/dtw_result.csv
+./run_mpi_v3.sh ../../dados/master_tickers.csv 100 4 0 ../../results/mpi/v3/dtw_result.csv
+./run_hybrid.sh ../../dados/master_tickers.csv 100 4 4 0 ../../results/hybrid/dtw_result.csv
+
+# Cluster execution (SLURM)
+sbatch slurm_openmp.sh
+sbatch slurm_mpi_v3.sh
+sbatch slurm_hybrid.sh
+```
+
+See `scripts/README.md` for detailed usage instructions and examples.
 
 # Python folder project files
 ### colector.py
@@ -37,13 +106,18 @@ In windowns:
 
 # C Project
 
-Example is on dtaidistance/src/DTAIDistanceC that run DTW direct in C.
+## Implementation Versions
 
-**DTW with OpenMP implementation** was developed by Merth.
+This project compares multiple DTW parallelization strategies:
 
-**DTW with MPI version 1** All process read the file and organize in memory all stocks. Master send the position of the stocks and slaves calculate and respond the value to master organize.
+- **Sequential**: Baseline single-threaded implementation for performance comparison
+- **OpenMP**: Shared memory parallelization with dynamic vs guided scheduling strategies
+- **MPI v1**: Initial distributed memory implementation with basic task distribution
+- **MPI v2**: Optimized MPI with reduced communication overhead (2 messages per task)
+- **MPI v3**: Advanced MPI with custom datatypes and contiguous buffer management
+- **Hybrid**: Combined MPI+OpenMP for multi-core cluster environments
 
-**DTW with MPI version 2** Just master have the information in memory and will send by message the sequence to be calculated. Master is responsible to organize the block of results in momery and return it.
+Each version is documented in its respective `implementations/*/README.md` file.
 
 
 ## MPI how to run (Linux)
