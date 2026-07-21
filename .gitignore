@@ -1,5 +1,6 @@
 # Data files (large datasets)
-dados/*.csv
+#dados/*.csv
+dados/*.zip
 !dados/.gitkeep
 
 # Result files

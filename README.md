@@ -78,15 +78,63 @@ See `scripts/README.md` for detailed usage instructions and examples.
 
 # Python folder project files
 ### colector.py
-Collects information from Yahoo Finance for different periods:
+Collects stock price data from Yahoo Finance for different time periods and generates both original and normalized datasets for DTW analysis.
 
-- Last 2 years (daily)
+**How to use:**
 
-- Last week (hourly)
+1. Navigate to the ColectData folder:
+```bash
+cd ColectData
+```
 
-- Last day (minute)
+2. Edit line 286 in `colector.py` to specify which stock list to use:
+```python
+# Change "sample" to any of the predefined lists or your custom list
+df_final = download_or_update(period_name, "sample", sample, interval, window, minimum)
+```
 
-Saves raw data in data/ and normalized data in normalize/.
+**Available predefined stock lists:**
+- `sample` - Small sample set (5 stocks for testing)
+- `ibov_tickers` - Brazilian IBOV index stocks
+- `bdrs_tickers` - Brazilian DRs (international stocks traded in Brazil)
+- `sp500` - S&P 500 companies
+- `commodities_tickers` - Oil, gold, silver, soybeans, corn, coffee, cattle futures
+- `currency_tickers` - USD/BRL and EUR/BRL exchange rates
+- `crypto_tickers` - Major cryptocurrencies (BTC, ETH, BNB, SOL, etc.)
+- `interest_tickers` - US Treasury yields
+- `EWT` - Taiwan stocks
+- `EWJ` - Japan stocks
+- `UAE` - UAE stocks
+- `MCHI` - China stocks
+- `EWQ` - France stocks
+- `INDY` - India stocks
+- `global_tickers` - Combined global stocks
+- `master_tickers_br_EUA` - Brazil + US stocks
+- `br_tickers` - Brazil + DRs
+
+**Custom stock list:**
+You can also define your own list at the top of the file (e.g., line 101):
+```python
+my_stocks = ['AAPL', 'GOOGL', 'MSFT', 'TSLA']
+```
+
+Then use it in line 286:
+```python
+df_final = download_or_update(period_name, "my_stocks", my_stocks, interval, window, minimum)
+```
+
+**Output:**
+- Original data saved to: `ColectData/data/`
+- Normalized data saved to: `ColectData/normalized/`
+
+**Time periods available:**
+- 10 years daily data (default)
+- 2 years daily data (commented out)
+- 6 months hourly data (commented out)
+- 7 days minute data (commented out)
+- 24 hours 1-minute data (commented out)
+
+To enable different periods, uncomment the desired configuration in the `configs` list (lines 10-18).
 
 ### normalize.py
 Normalizes the close column from files collected by colector.py.
@@ -156,7 +204,7 @@ Examples:
 Yahoo Finance
 
 # coletor yahoo
-github.com/Rodrigo-Palma/fifnviz-platform
+
 
 # Enviroment
 Para utilizar os nossos serviços, uma conta foi criada para você. Os detalhes são os seguintes:
