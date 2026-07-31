@@ -203,9 +203,6 @@ Examples:
 # Dataset
 Yahoo Finance
 
-# coletor yahoo
-
-
 # Enviroment
 Para utilizar os nossos serviços, uma conta foi criada para você. Os detalhes são os seguintes:
 Servidor: pantanal.lad.pucrs.br
